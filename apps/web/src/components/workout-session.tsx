@@ -6,16 +6,40 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { loadAppData, saveAppData, loadPlan, loadExercises, type Exercise, type WorkoutExercise, getSuggestedWeight } from "@/lib/localStorage";
+import { loadAppData, saveAppData, loadPlan, loadExercises, type Exercise, type WorkoutExercise, getSuggestedWeight, type WorkoutPlan, type AppData } from "@/lib/localStorage";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 
+// Helper function to determine the next workout
+const getNextWorkoutType = (plan: WorkoutPlan, appData: AppData): string | null => {
+  const dayOfWeek = new Date().getDay();
+  const workoutForToday = plan.dayWorkouts[dayOfWeek];
+
+  if (workoutForToday) {
+    return workoutForToday;
+  }
+
+  // If no workout scheduled for today, find the next scheduled one
+  for (let i = 1; i <= 7; i++) {
+    const nextDay = (dayOfWeek + i) % 7;
+    if (plan.dayWorkouts[nextDay]) {
+      return plan.dayWorkouts[nextDay];
+    }
+  }
+
+  return null;
+};
+
+interface SetLog {
+  reps: number;
+  weight: number;
+}
+
 interface ExerciseLog {
   exerciseId: string;
-  targetReps: number;
+  targetReps: number[];
   targetWeight: number;
-  actualWeight: number;
-  actualReps: number;
+  sets: SetLog[];
   effort: number;
   notes: string;
 }
@@ -28,6 +52,7 @@ export function WorkoutSession() {
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [logs, setLogs] = useState<ExerciseLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [alreadyCompleted, setAlreadyCompleted] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -51,22 +76,37 @@ export function WorkoutSession() {
         return;
       }
 
-      // Get next workout type (simplified logic)
-      setWorkoutType("FullBodyA"); // Default for now
+      // Get next workout type
+      const nextWorkoutType = getNextWorkoutType(plan, appData);
+      if (!nextWorkoutType) {
+        // Handle case where no workout is scheduled
+        router.push("/"); // Or a page indicating no workout
+        return;
+      }
+      setWorkoutType(nextWorkoutType);
+
+      // Check if workout for today is already done
+      const today = new Date().toISOString().split('T')[0];
+      const todaysLog = appData.logs.find(log => log.date === today && log.workoutType === nextWorkoutType);
+      if (todaysLog) {
+        setAlreadyCompleted(true);
+        setLoading(false);
+        return;
+      }
       
       // Get workout exercises with suggestions
       const exercisesData = await loadExercises();
       setExercises(exercisesData);
       
-      // For demo purposes, we'll use FullBodyA
-      const workoutExercisesData = plan.workouts["FullBodyA"] || [];
+      // Use the determined workout type
+      const workoutExercisesData = plan.workouts[nextWorkoutType] || [];
       setWorkoutExercises(workoutExercisesData);
       
       // Initialize logs with suggested weights
       const initialLogs = workoutExercisesData.map(exercise => {
         // Find last log for this exercise to get suggestion
         const lastSession = appData.logs
-          .filter(log => log.workoutType === "FullBodyA")
+          .filter(log => log.workoutType === nextWorkoutType)
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
           .find(() => true);
         
@@ -77,8 +117,7 @@ export function WorkoutSession() {
           exerciseId: exercise.exerciseId,
           targetReps: exercise.targetReps,
           targetWeight: suggestedWeight,
-          actualWeight: suggestedWeight,
-          actualReps: exercise.targetReps,
+          sets: exercise.targetReps.map(reps => ({ reps, weight: suggestedWeight })),
           effort: 3,
           notes: ""
         };
@@ -95,6 +134,12 @@ export function WorkoutSession() {
   const updateLog = (field: keyof ExerciseLog, value: any) => {
     const newLogs = [...logs];
     (newLogs[currentExerciseIndex] as any)[field] = value;
+    setLogs(newLogs);
+  };
+
+  const updateSetLog = (setIndex: number, field: keyof SetLog, value: number) => {
+    const newLogs = [...logs];
+    newLogs[currentExerciseIndex].sets[setIndex][field] = value;
     setLogs(newLogs);
   };
 
@@ -143,6 +188,24 @@ export function WorkoutSession() {
     );
   }
 
+  if (alreadyCompleted) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Workout Already Completed</CardTitle>
+          <CardDescription>
+            You have already completed the workout for today. Great job!
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => router.push("/history")}>
+            View History
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!currentPlanId || !workoutType || workoutExercises.length === 0) {
     return (
       <Card>
@@ -185,42 +248,30 @@ export function WorkoutSession() {
               </p>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Target Reps</Label>
-                <div className="p-2 bg-muted rounded-md text-center font-medium">
-                  {currentLog.targetReps}
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Target Weight</Label>
-                <div className="p-2 bg-muted rounded-md text-center font-medium">
-                  {currentLog.targetWeight} lbs
-                </div>
-              </div>
-            </div>
-            
+      
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="actualWeight">Actual Weight (lbs)</Label>
-                <Input
-                  id="actualWeight"
-                  type="number"
-                  value={currentLog.actualWeight}
-                  onChange={(e) => updateLog('actualWeight', parseInt(e.target.value) || 0)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="actualReps">Actual Reps</Label>
-                <Input
-                  id="actualReps"
-                  type="number"
-                  value={currentLog.actualReps}
-                  onChange={(e) => updateLog('actualReps', parseInt(e.target.value) || 0)}
-                />
-              </div>
+              {currentLog.sets.map((set, index) => (
+                <div key={index} className="grid grid-cols-2 gap-4 items-center">
+                  <div className="space-y-2">
+                    <Label htmlFor={`weight-${index}`}>Weight (lbs)</Label>
+                    <Input
+                      id={`weight-${index}`}
+                      type="number"
+                      value={set.weight}
+                      onChange={(e) => updateSetLog(index, 'weight', parseInt(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`reps-${index}`}>Reps</Label>
+                    <Input
+                      id={`reps-${index}`}
+                      type="number"
+                      value={set.reps}
+                      onChange={(e) => updateSetLog(index, 'reps', parseInt(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+              ))}
               
               <div className="space-y-2">
                 <Label>Effort Level</Label>

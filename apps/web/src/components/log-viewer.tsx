@@ -14,24 +14,27 @@ function exportToCSV(logs: any[], exercises: Exercise[]) {
   const exerciseMap = new Map(exercises.map(ex => [ex.id, ex.name]));
   
   // CSV header
-  const headers = ['Date', 'Workout Type', 'Exercise', 'Target Reps', 'Target Weight', 'Actual Reps', 'Actual Weight', 'Effort', 'Notes'];
+  const headers = ['Date', 'Workout Type', 'Exercise', 'Set', 'Target Reps', 'Target Weight', 'Actual Reps', 'Actual Weight', 'Effort', 'Notes'];
   
   // CSV rows
   const rows: string[] = [];
   
   logs.forEach(log => {
     log.exercises.forEach((exercise: any) => {
-      rows.push([
-        log.date,
-        log.workoutType,
-        exerciseMap.get(exercise.exerciseId) || exercise.exerciseId,
-        exercise.targetReps,
-        exercise.targetWeight,
-        exercise.actualReps,
-        exercise.actualWeight,
-        exercise.effort,
-        `"${exercise.notes.replace(/"/g, '""')}"` // Escape quotes in notes
-      ].join(','));
+      exercise.sets.forEach((set: any, index: number) => {
+        rows.push([
+          log.date,
+          log.workoutType,
+          exerciseMap.get(exercise.exerciseId) || exercise.exerciseId,
+          index + 1,
+          exercise.targetReps[index] || exercise.targetReps[0],
+          exercise.targetWeight,
+          set.reps,
+          set.weight,
+          exercise.effort,
+          `"${exercise.notes.replace(/"/g, '""')}"` // Escape quotes in notes
+        ].join(','));
+      });
     });
   });
   
@@ -85,10 +88,13 @@ export function LogViewer({ limit }: LogViewerProps) {
     return exercise ? exercise.name : exerciseId;
   };
 
-  const calculateProgressScore = (actualReps: number, targetReps: number, effort: number) => {
-    const repRatio = actualReps / targetReps;
+  const calculateProgressScore = (exercise: any) => {
+    const totalActualReps = exercise.sets.reduce((sum: number, set: any) => sum + set.reps, 0);
+    const totalTargetReps = exercise.targetReps.reduce((sum: number, reps: number) => sum + reps, 0);
+    if (totalTargetReps === 0) return 0;
+    const repRatio = totalActualReps / totalTargetReps;
     // Simple progress score: rep ratio * effort (normalized)
-    const score = Math.round(repRatio * (effort / 5) * 100);
+    const score = Math.round(repRatio * (exercise.effort / 5) * 100);
     return score;
   };
 
@@ -150,11 +156,7 @@ export function LogViewer({ limit }: LogViewerProps) {
             <CardContent>
               <div className="space-y-3">
                 {log.exercises.map((exercise: any, exIndex: number) => {
-                  const progressScore = calculateProgressScore(
-                    exercise.actualReps,
-                    exercise.targetReps,
-                    exercise.effort
-                  );
+                  const progressScore = calculateProgressScore(exercise);
                   
                   return (
                     <div key={exIndex} className="border-b pb-3 last:border-b-0 last:pb-0">
@@ -165,22 +167,24 @@ export function LogViewer({ limit }: LogViewerProps) {
                         </span>
                       </div>
                       
-                      <div className="grid grid-cols-3 gap-2 mt-2 text-sm">
-                        <div className="bg-muted p-2 rounded">
-                          <div className="text-muted-foreground">Target</div>
-                          <div>{exercise.targetReps} reps @ {exercise.targetWeight} lbs</div>
+                      {exercise.sets.map((set: any, setIndex: number) => (
+                        <div key={setIndex} className="grid grid-cols-3 gap-2 mt-2 text-sm">
+                          <div className="bg-muted p-2 rounded">
+                            <div className="text-muted-foreground">Set {setIndex + 1} Target</div>
+                            <div>{exercise.targetReps[setIndex] || exercise.targetReps[0]} reps @ {exercise.targetWeight} lbs</div>
+                          </div>
+                          
+                          <div className="bg-muted p-2 rounded">
+                            <div className="text-muted-foreground">Set {setIndex + 1} Actual</div>
+                            <div>{set.reps} reps @ {set.weight} lbs</div>
+                          </div>
+                          
+                          <div className="bg-muted p-2 rounded">
+                            <div className="text-muted-foreground">Effort</div>
+                            <div>{exercise.effort}/5 stars</div>
+                          </div>
                         </div>
-                        
-                        <div className="bg-muted p-2 rounded">
-                          <div className="text-muted-foreground">Actual</div>
-                          <div>{exercise.actualReps} reps @ {exercise.actualWeight} lbs</div>
-                        </div>
-                        
-                        <div className="bg-muted p-2 rounded">
-                          <div className="text-muted-foreground">Effort</div>
-                          <div>{exercise.effort}/5 stars</div>
-                        </div>
-                      </div>
+                      ))}
                       
                       {exercise.notes && (
                         <div className="mt-2 text-sm">

@@ -27,12 +27,16 @@ export interface WorkoutPlan {
   };
 }
 
+export interface SetLog {
+  reps: number;
+  weight: number;
+}
+
 export interface ExerciseLog {
   exerciseId: string;
-  targetReps: number;
+  targetReps: number[];
   targetWeight: number;
-  actualWeight: number;
-  actualReps: number;
+  sets: SetLog[];
   effort: number;
   notes: string;
 }
@@ -171,17 +175,21 @@ export function savePlan(plan: WorkoutPlan): void {
 
 // Smart weight recommendation logic
 export function getSuggestedWeight(lastLog: ExerciseLog): number {
-  const { actualReps, targetReps, actualWeight, effort } = lastLog;
-  const repRatio = actualReps / targetReps;
+  const lastSet = lastLog.sets[lastLog.sets.length - 1];
+  if (!lastSet) return lastLog.targetWeight;
 
-  if (repRatio >= 1 && effort <= 3) {
-    return Math.round(actualWeight * 1.05); // +5%
-  } else if (repRatio >= 1 && effort === 4) {
-    return actualWeight; // keep
-  } else if (repRatio < 0.8 || effort === 5) {
-    return Math.round(actualWeight * 0.95); // -5%
+  const { reps, weight } = lastSet;
+  const targetReps = lastLog.targetReps[lastLog.sets.length - 1] || lastLog.targetReps[0];
+  const repRatio = reps / targetReps;
+
+  if (repRatio >= 1 && lastLog.effort <= 3) {
+    return Math.round(weight * 1.05); // +5%
+  } else if (repRatio >= 1 && lastLog.effort === 4) {
+    return weight; // keep
+  } else if (repRatio < 0.8 || lastLog.effort === 5) {
+    return Math.round(weight * 0.95); // -5%
   }
-  return actualWeight;
+  return weight;
 }
 
 // Get the next workout based on the current plan and schedule

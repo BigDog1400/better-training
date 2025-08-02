@@ -111,7 +111,7 @@ export function PlanViewer() {
                         <div>
                           <h4 className="font-medium">{exerciseDetails?.name || exercise.exerciseId}</h4>
                           <p className="text-sm text-muted-foreground">
-                            {exercise.targetReps} reps @ {exercise.startingWeight} lbs
+                            {exercise.targetReps.join(' / ')} reps @ {exercise.startingWeight} lbs
                           </p>
                         </div>
                       </div>
