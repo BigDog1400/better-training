@@ -1,0 +1,58 @@
+[
+  {
+    "id": "leg-press",
+    "name": "Leg Press",
+    "machine": "Leg Press Machine",
+    "muscle": "Quads",
+    "instructions": "Feet flat, back supported, full range."
+  },
+  {
+    "id": "chest-press",
+    "name": "Chest Press",
+    "machine": "Chest Press Machine",
+    "muscle": "Chest",
+    "instructions": "Push smoothly, don't flare elbows."
+  },
+  {
+    "id": "lat-pulldown",
+    "name": "Lat Pulldown",
+    "machine": "Lat Pulldown Machine",
+    "muscle": "Lats",
+    "instructions": "Pull down to chest, control the weight on the way up."
+  },
+  {
+    "id": "leg-curl",
+    "name": "Leg Curl",
+    "machine": "Leg Curl Machine",
+    "muscle": "Hamstrings",
+    "instructions": "Lie face down, curl legs up slowly and controlled."
+  },
+  {
+    "id": "pec-deck",
+    "name": "Pec Deck",
+    "machine": "Pec Deck Machine",
+    "muscle": "Chest",
+    "instructions": "Sit upright, bring arms together in front of chest."
+  },
+  {
+    "id": "seated-row",
+    "name": "Seated Row",
+    "machine": "Seated Row Machine",
+    "muscle": "Upper Back",
+    "instructions": "Sit upright, pull handle towards torso, squeeze shoulder blades."
+  },
+  {
+    "id": "shoulder-press",
+    "name": "Shoulder Press",
+    "machine": "Shoulder Press Machine",
+    "muscle": "Shoulders",
+    "instructions": "Sit upright, press handles overhead, don't arch back."
+  },
+  {
+    "id": "hip-abduction",
+    "name": "Hip Abduction",
+    "machine": "Hip Abduction Machine",
+    "muscle": "Glutes",
+    "instructions": "Sit with legs apart, push legs outward against resistance."
+  }
+]

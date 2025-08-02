@@ -1,30 +1,18 @@
 "use client";
-import Link from "next/link";
-
-import { ModeToggle } from "./mode-toggle";
+import { ModeToggle } from "./mode-toggle"
+import Link from "next/link"
 
 export default function Header() {
-  const links = [
-    { to: "/", label: "Home" },
-  ];
-
   return (
-    <div>
-      <div className="flex flex-row items-center justify-between px-2 py-1">
-        <nav className="flex gap-4 text-lg">
-          {links.map(({ to, label }) => {
-            return (
-              <Link key={to} href={to}>
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
+    <header className="border-b p-4">
+      <div className="container mx-auto max-w-3xl flex justify-between items-center">
+        <Link href="/" className="font-bold text-xl">
+          better-training
+        </Link>
         <div className="flex items-center gap-2">
           <ModeToggle />
         </div>
       </div>
-      <hr />
-    </div>
+    </header>
   );
 }

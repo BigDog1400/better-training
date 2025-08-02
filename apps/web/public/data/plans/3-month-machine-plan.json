@@ -1,0 +1,57 @@
+{
+  "id": "3m-machine",
+  "name": "3-Month Machine Plan",
+  "durationWeeks": 12,
+  "weeklySchedule": [
+    { "day": 1, "workout": "FullBodyA" },
+    { "day": 2, "workout": "FullBodyB" },
+    { "day": 4, "workout": "FullBodyA" },
+    { "day": 5, "workout": "FullBodyB" }
+  ],
+  "workouts": {
+    "FullBodyA": [
+      {
+        "exerciseId": "leg-press",
+        "targetReps": 12,
+        "startingWeight": 120
+      },
+      {
+        "exerciseId": "chest-press",
+        "targetReps": 12,
+        "startingWeight": 80
+      },
+      {
+        "exerciseId": "lat-pulldown",
+        "targetReps": 12,
+        "startingWeight": 70
+      },
+      {
+        "exerciseId": "seated-row",
+        "targetReps": 12,
+        "startingWeight": 60
+      }
+    ],
+    "FullBodyB": [
+      {
+        "exerciseId": "leg-curl",
+        "targetReps": 12,
+        "startingWeight": 60
+      },
+      {
+        "exerciseId": "pec-deck",
+        "targetReps": 15,
+        "startingWeight": 50
+      },
+      {
+        "exerciseId": "shoulder-press",
+        "targetReps": 12,
+        "startingWeight": 40
+      },
+      {
+        "exerciseId": "hip-abduction",
+        "targetReps": 15,
+        "startingWeight": 50
+      }
+    ]
+  }
+}
