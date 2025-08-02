@@ -11,16 +11,11 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 
 // Helper function to determine the next workout
-const getNextWorkoutType = (plan: WorkoutPlan, appData: AppData): string | null => {
+const getNextWorkoutType = (plan: WorkoutPlan, appData: AppData, startDayOffset = 0): string | null => {
   const dayOfWeek = new Date().getDay();
-  const workoutForToday = plan.dayWorkouts[dayOfWeek];
-
-  if (workoutForToday) {
-    return workoutForToday;
-  }
-
-  // If no workout scheduled for today, find the next scheduled one
-  for (let i = 1; i <= 7; i++) {
+  
+  // Start searching from today + offset
+  for (let i = startDayOffset; i < 7 + startDayOffset; i++) {
     const nextDay = (dayOfWeek + i) % 7;
     if (plan.dayWorkouts[nextDay]) {
       return plan.dayWorkouts[nextDay];
@@ -53,6 +48,7 @@ export function WorkoutSession() {
   const [logs, setLogs] = useState<ExerciseLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [alreadyCompleted, setAlreadyCompleted] = useState(false);
+  const [nextWorkout, setNextWorkout] = useState<{ name: string; exercises: WorkoutExercise[] } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -90,6 +86,14 @@ export function WorkoutSession() {
       const todaysLog = appData.logs.find(log => log.date === today && log.workoutType === nextWorkoutType);
       if (todaysLog) {
         setAlreadyCompleted(true);
+        
+        // Find next workout for sneak peak
+        const nextWorkoutTypeAfterToday = getNextWorkoutType(plan, appData, 1);
+        if (nextWorkoutTypeAfterToday) {
+          const nextWorkoutExercises = plan.workouts[nextWorkoutTypeAfterToday] || [];
+          setNextWorkout({ name: nextWorkoutTypeAfterToday, exercises: nextWorkoutExercises });
+        }
+        
         setLoading(false);
         return;
       }
@@ -190,19 +194,44 @@ export function WorkoutSession() {
 
   if (alreadyCompleted) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Workout Already Completed</CardTitle>
-          <CardDescription>
-            You have already completed the workout for today. Great job!
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={() => router.push("/history")}>
-            View History
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Workout Already Completed</CardTitle>
+            <CardDescription>
+              You have already completed the workout for today. Great job!
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => router.push("/history")}>
+              View History
+            </Button>
+          </CardContent>
+        </Card>
+        
+        {nextWorkout && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Next Workout: {nextWorkout.name}</CardTitle>
+              <CardDescription>
+                Here's a sneak peek of your next session.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {nextWorkout.exercises.map((exercise, index) => (
+                  <div key={index} className="flex justify-between items-center p-2 bg-muted rounded-lg">
+                    <h4 className="font-medium">{exercises.find(e => e.id === exercise.exerciseId)?.name || exercise.exerciseId}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {exercise.targetReps.join(' / ')} reps
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     );
   }
 
