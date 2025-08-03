@@ -26,8 +26,8 @@ export class ExerciseService {
       limit: params.limit,
       query: {
         search: params.query,
-        searchThreshold: params.threshold
-      }
+        searchThreshold: params.threshold,
+      },
     };
 
     return this.getExercisesUseCase.execute(query);

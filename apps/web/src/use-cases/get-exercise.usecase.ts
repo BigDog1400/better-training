@@ -1,5 +1,6 @@
 import { FileLoader } from '@/data/load';
 import type { GetExercisesArgs, GetExercisesReturnArgs, Exercise } from '@/types/exercise.types';
+import Fuse from 'fuse.js';
 
 export class GetExercisesUseCase {
   async execute(params: GetExercisesArgs): Promise<GetExercisesReturnArgs> {
@@ -8,8 +9,21 @@ export class GetExercisesUseCase {
     let exercises = await FileLoader.loadExercises();
 
     if (query.search) {
-      const searchTerm = query.search.toLowerCase();
-      exercises = exercises.filter(e => e.name.toLowerCase().includes(searchTerm));
+      const fuse = new Fuse(exercises, {
+        keys: [
+          { name: 'name', weight: 0.4 },
+          { name: 'targetMuscles', weight: 0.25 },
+          { name: 'bodyParts', weight: 0.2 },
+          { name: 'equipments', weight: 0.15 },
+          { name: 'secondaryMuscles', weight: 0.1 }
+        ],
+        threshold: query.searchThreshold || 0.4,
+        includeScore: false,
+        ignoreLocation: true,
+        findAllMatches: true
+      });
+
+      exercises = fuse.search(query.search).map(result => result.item);
     }
 
     if (query.targetMuscles && query.targetMuscles.length > 0) {
