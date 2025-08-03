@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star, Plus, Trash2, Copy, Info } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 import {
   type AppData,
   type Exercise,
@@ -68,6 +71,10 @@ export function WorkoutSession() {
     []
   );
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
+  // Quick entry + numpad state
+  const [qWeight, setQWeight] = useState<number | ''>('');
+  const [qReps, setQReps] = useState<number | ''>('');
+  const [qEffort, setQEffort] = useState<number>(3);
   const [logs, setLogs] = useState<ExerciseLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [alreadyCompleted, setAlreadyCompleted] = useState(false);
@@ -181,6 +188,12 @@ export function WorkoutSession() {
       });
 
       setLogs(initialLogs);
+      // Seed quick entry from first exercise
+      if (initialLogs[0]) {
+        setQWeight(initialLogs[0].sets[0]?.weight ?? '');
+        setQReps(initialLogs[0].sets[0]?.reps ?? '');
+        setQEffort(initialLogs[0].effort ?? 3);
+      }
     } catch (error) {
       console.error('Error initializing workout session:', error);
     } finally {
@@ -206,13 +219,27 @@ export function WorkoutSession() {
 
   const nextExercise = () => {
     if (currentExerciseIndex < workoutExercises.length - 1) {
-      setCurrentExerciseIndex(currentExerciseIndex + 1);
+      const nextIdx = currentExerciseIndex + 1;
+      setCurrentExerciseIndex(nextIdx);
+      const next = logs[nextIdx];
+      if (next) {
+        setQWeight(next.sets[0]?.weight ?? '');
+        setQReps(next.sets[0]?.reps ?? '');
+        setQEffort(next.effort ?? 3);
+      }
     }
   };
 
   const prevExercise = () => {
     if (currentExerciseIndex > 0) {
-      setCurrentExerciseIndex(currentExerciseIndex - 1);
+      const prevIdx = currentExerciseIndex - 1;
+      setCurrentExerciseIndex(prevIdx);
+      const prev = logs[prevIdx];
+      if (prev) {
+        setQWeight(prev.sets[0]?.weight ?? '');
+        setQReps(prev.sets[0]?.reps ?? '');
+        setQEffort(prev.effort ?? 3);
+      }
     }
   };
 
@@ -244,6 +271,54 @@ export function WorkoutSession() {
     ? exercises.find((e) => e.exerciseId === currentExercise.exerciseId)
     : null;
   const currentLog = logs[currentExerciseIndex];
+
+  // Quick entry helpers
+  const sameAsLast = () => {
+    if (!currentLog) return;
+    const last = currentLog.sets[currentLog.sets.length - 1];
+    if (!last) return;
+    setQWeight(last.weight);
+    setQReps(last.reps);
+    setQEffort(currentLog.effort ?? 3);
+  };
+
+  const addQuickSet = () => {
+    if (!currentLog) return;
+    const w = Number(qWeight) || 0;
+    const r = Number(qReps) || 0;
+    if (w <= 0 || r <= 0) return;
+
+    const nextLogs = [...logs];
+    nextLogs[currentExerciseIndex] = {
+      ...currentLog,
+      sets: [...currentLog.sets, { weight: w, reps: r }],
+      effort: qEffort,
+    };
+    setLogs(nextLogs);
+    // Prefill same for speed
+    setQWeight(w);
+    setQReps(r);
+  };
+
+  const removeSet = (idx: number) => {
+    const next = [...logs];
+    next[currentExerciseIndex] = {
+      ...currentLog!,
+      sets: currentLog!.sets.filter((_, i) => i !== idx),
+    };
+    setLogs(next);
+  };
+
+  const duplicateSet = (idx: number) => {
+    const s = currentLog?.sets[idx];
+    if (!s) return;
+    const next = [...logs];
+    next[currentExerciseIndex] = {
+      ...currentLog!,
+      sets: [...currentLog!.sets, { ...s }],
+    };
+    setLogs(next);
+  };
 
   if (loading) {
     return (
@@ -331,55 +406,159 @@ export function WorkoutSession() {
 
       {currentExerciseData && currentLog && (
         <Card>
-          <CardHeader>
-            <CardTitle>{currentExerciseData.name}</CardTitle>
-            <CardDescription>{currentExerciseData.equipments.join(', ')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <p className="text-muted-foreground text-sm">
-                {currentExerciseData.instructions.join('\n')}
-              </p>
+          <CardHeader className="pb-2">
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle className="text-xl">{currentExerciseData.name}</CardTitle>
+                <CardDescription>{currentExerciseData.equipments.join(', ')}</CardDescription>
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {currentExercise?.targetReps?.join(' / ')} reps
+              </div>
             </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="howto" className="border-none">
+                <AccordionTrigger className="py-0 text-sm text-muted-foreground">
+                  <div className="inline-flex items-center gap-2">
+                    <Info className="h-4 w-4" />
+                    How to perform (tap to expand)
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="whitespace-pre-line pt-2 text-sm text-muted-foreground">
+                  {currentExerciseData.instructions.join('\n')}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
 
-            <div className="space-y-4">
-              {currentLog.sets.map((set, index) => (
-                <div
-                  className="grid grid-cols-2 items-center gap-4"
-                  key={index}
-                >
-                  <div className="space-y-2">
-                    <Label htmlFor={`weight-${index}`}>Weight (lbs)</Label>
+            <div className="space-y-3">
+              {/* Quick entry row */}
+              <div className="rounded-lg border p-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label className="mb-1 block text-xs text-muted-foreground" htmlFor="qweight">
+                      Weight (lb)
+                    </Label>
                     <Input
-                      id={`weight-${index}`}
-                      onChange={(e) =>
-                        updateSetLog(
-                          index,
-                          'weight',
-                          Number.parseInt(e.target.value) || 0
-                        )
-                      }
-                      type="number"
-                      value={set.weight}
+                      id="qweight"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="e.g. 50"
+                      value={qWeight}
+                      onChange={(e) => setQWeight(Number.parseInt(e.target.value) || '')}
+                      className="h-12 text-base"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`reps-${index}`}>Reps</Label>
+                  <div>
+                    <Label className="mb-1 block text-xs text-muted-foreground" htmlFor="qreps">
+                      Reps
+                    </Label>
                     <Input
-                      id={`reps-${index}`}
-                      onChange={(e) =>
-                        updateSetLog(
-                          index,
-                          'reps',
-                          Number.parseInt(e.target.value) || 0
-                        )
-                      }
-                      type="number"
-                      value={set.reps}
+                      id="qreps"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="e.g. 12"
+                      value={qReps}
+                      onChange={(e) => setQReps(Number.parseInt(e.target.value) || '')}
+                      className="h-12 text-base"
                     />
+                  </div>
+                  <div className="flex items-end justify-end">
+                    <Button onClick={addQuickSet} className="h-12 w-full">
+                      <Plus className="mr-2 h-4 w-4" /> Add Set
+                    </Button>
                   </div>
                 </div>
-              ))}
+                <div className="mt-2 flex items-center justify-between">
+                  <div className="text-xs text-muted-foreground">
+                    Last same?{' '}
+                    <Button variant="link" className="h-auto px-1 text-xs" onClick={sameAsLast}>
+                      Use last
+                    </Button>
+                  </div>
+                  <RadioGroup
+                    className="flex items-center gap-1"
+                    value={String(qEffort)}
+                    onValueChange={(v) => setQEffort(Number(v))}
+                  >
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <div
+                        key={n}
+                        className={cn(
+                          'rounded-md border px-2 py-1 text-xs',
+                          qEffort === n ? 'bg-primary text-primary-foreground' : 'bg-background'
+                        )}
+                      >
+                        <RadioGroupItem className="sr-only" value={String(n)} id={`eff-${n}`} />
+                        <label htmlFor={`eff-${n}`}>{n}</label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+                <div className="mt-1 text-[11px] text-muted-foreground">
+                  Effort scale: 1 = Easy, 5 = Maximum Effort
+                </div>
+              </div>
+
+              {/* Logged sets list - now inline editable */}
+              <div className="space-y-2">
+                {/* Column headers for clarity on small devices */}
+                <div className="grid grid-cols-7 items-center gap-2 px-2 text-[11px] text-muted-foreground">
+                  <div className="col-span-2">Set</div>
+                  <div className="col-span-2">Weight (lb)</div>
+                  <div className="col-span-2">Reps</div>
+                  <div className="col-span-1 text-right">Actions</div>
+                </div>
+                {currentLog.sets.map((set, index) => (
+                  <div key={index} className="rounded-md border p-2">
+                    <div className="grid grid-cols-7 items-center gap-2">
+                      <div className="col-span-2 text-sm">
+                        #{index + 1}
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="sr-only" htmlFor={`item-weight-${index}`}>Weight (lb)</Label>
+                        <Input
+                          id={`item-weight-${index}`}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          className="h-9"
+                          value={set.weight}
+                          onChange={(e) =>
+                            updateSetLog(index, 'weight', Number.parseInt(e.target.value) || 0)
+                          }
+                          placeholder="e.g. 50"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="sr-only" htmlFor={`item-reps-${index}`}>Reps</Label>
+                        <Input
+                          id={`item-reps-${index}`}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          className="h-9"
+                          value={set.reps}
+                          onChange={(e) =>
+                            updateSetLog(index, 'reps', Number.parseInt(e.target.value) || 0)
+                          }
+                          placeholder="e.g. 12"
+                        />
+                      </div>
+                      <div className="col-span-1 flex items-center justify-end gap-1">
+                        <Button size="icon" variant="ghost" aria-label="Duplicate set" onClick={() => duplicateSet(index)}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" aria-label="Delete set" onClick={() => removeSet(index)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="text-[11px] text-muted-foreground">
+                  Tip: Adjust Weight (lb) and Reps for any set directly here.
+                </div>
+              </div>
 
               <div className="space-y-2">
                 <Label>Effort Level</Label>
@@ -416,28 +595,40 @@ export function WorkoutSession() {
               </div>
             </div>
 
-            <div className="flex justify-between">
-              <Button
-                disabled={currentExerciseIndex === 0}
-                onClick={prevExercise}
-                variant="outline"
-              >
-                <ChevronLeft className="mr-2 h-4 w-4" />
-                Previous
-              </Button>
+            <div className="h-16" />
+            <div className="fixed inset-x-0 bottom-16 z-40">
+              <div className="mx-auto max-w-xl px-4">
+                <div className="rounded-xl border bg-background/95 p-2 shadow-xl backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                  <div className="flex items-center justify-between gap-2">
+                    <Button
+                      disabled={currentExerciseIndex === 0}
+                      onClick={prevExercise}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <ChevronLeft className="mr-2 h-4 w-4" />
+                      Previous
+                    </Button>
 
-              {currentExerciseIndex === workoutExercises.length - 1 ? (
-                <Button onClick={finishSession}>Finish Workout</Button>
-              ) : (
-                <Button onClick={nextExercise}>
-                  Next Exercise
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              )}
+                    {currentExerciseIndex === workoutExercises.length - 1 ? (
+                      <Button onClick={finishSession} className="flex-[1.2]">
+                        Finish Workout
+                      </Button>
+                    ) : (
+                      <Button onClick={nextExercise} className="flex-[1.2]">
+                        Save & Next
+                        <ChevronRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* Custom numpad removed per feedback */}
     </div>
   );
 }
