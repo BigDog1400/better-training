@@ -5,7 +5,7 @@ import { Suspense } from 'react';
 
 export default function WorkoutSessionPage() {
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-6">
+    <div className="container mx-auto max-w-3xl py-6 md:px-4">
       <Suspense fallback={<div>Loading...</div>}>
         <WorkoutSession />
       </Suspense>
