@@ -15,39 +15,45 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-6">
-      <div className="space-y-6 text-center">
-        <pre className="overflow-x-auto font-mono text-sm">{TITLE_TEXT}</pre>
-        <h1 className="font-bold text-3xl">Better Training</h1>
-        <p className="mx-auto max-w-md text-muted-foreground">
-          Track your gym progress with machine-based workouts, customizable
-          plans, and smart progression recommendations.
-        </p>
+    <div className="flex min-h-[calc(100svh-56px)] items-center justify-center">
+      <div className="mx-auto w-full max-w-[480px] px-4 py-8 text-center">
+        <div className="space-y-6">
+          <pre className="overflow-x-auto font-mono text-xs sm:text-sm leading-tight text-muted-foreground">
+            {TITLE_TEXT}
+          </pre>
 
-        <div className="mx-auto mt-8 flex max-w-xs flex-col gap-4">
-          {hasPlan ? (
-            <>
-              <Button asChild size="lg">
-                <Link href="/plan/current">View Current Plan</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/workout/session">Start Workout Session</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/plan/select">Change Plan</Link>
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button asChild size="lg">
-                <Link href="/plan/select">Select a Training Plan</Link>
-              </Button>
-              <p className="text-muted-foreground text-sm">or</p>
-              <Button asChild variant="outline">
-                <Link href="/plan/create">Create Custom Plan</Link>
-              </Button>
-            </>
-          )}
+          <div className="space-y-2">
+            <h1 className="font-bold text-2xl sm:text-3xl">Better Training</h1>
+            <p className="mx-auto max-w-[28rem] text-sm text-muted-foreground">
+              Track your progress with machine-based workouts, simple plans, and smart progression.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-6 flex w-full max-w-[320px] flex-col gap-3">
+            {hasPlan ? (
+              <>
+                <Button asChild size="lg" className="h-12">
+                  <Link href="/plan/current">View Current Plan</Link>
+                </Button>
+                <Button asChild variant="outline" className="h-12">
+                  <Link href="/workout/session">Start Workout</Link>
+                </Button>
+                <Button asChild variant="outline" className="h-12">
+                  <Link href="/plan/select">Change Plan</Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild size="lg" className="h-12">
+                  <Link href="/plan/select">Select a Training Plan</Link>
+                </Button>
+                <div className="text-muted-foreground text-xs">or</div>
+                <Button asChild variant="outline" className="h-12">
+                  <Link href="/plan/create">Create Custom Plan</Link>
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
