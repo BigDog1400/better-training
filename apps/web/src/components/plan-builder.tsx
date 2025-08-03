@@ -134,28 +134,63 @@ export function PlanBuilder() {
     );
   };
 
+  // Robust update that supports intermediate empty/partial values while typing
   const updateExerciseTarget = (
     dayIndex: number,
     exerciseId: string,
     field: 'targetReps' | 'startingWeight' | 'sets',
-    value: number
+    value: number | ''
   ) => {
-    setWorkoutDays(
-      workoutDays.map((workoutDay, index) =>
+    setWorkoutDays((prev) =>
+      prev.map((workoutDay, index) =>
         index === dayIndex
           ? {
               ...workoutDay,
-              exercises: workoutDay.exercises.map((exercise) =>
-                exercise.exerciseId === exerciseId
-                  ? {
-                      ...exercise,
-                      [field]:
-                        field === 'targetReps'
-                          ? Array(exercise.sets).fill(value)
-                          : value,
-                    }
-                  : exercise
-              ),
+              exercises: workoutDay.exercises.map((exercise) => {
+                if (exercise.exerciseId !== exerciseId) return exercise;
+
+                // Allow empty string while typing (e.g., deleting 1 before typing 2)
+                if (value === '') {
+                  if (field === 'targetReps') {
+                    // Temporarily set first rep to empty; preserve array length
+                    const reps = [...exercise.targetReps];
+                    // Use NaN sentinel via Number('') if needed, but here keep previous and rely on input display
+                    reps[0] = Number.NaN as unknown as number;
+                    return { ...exercise, targetReps: reps };
+                  }
+                  if (field === 'startingWeight') {
+                    return { ...exercise, startingWeight: Number.NaN as unknown as number };
+                  }
+                  if (field === 'sets') {
+                    return { ...exercise, sets: Number.NaN as unknown as number };
+                  }
+                }
+
+                const numeric = typeof value === 'string' ? Number.parseInt(value) : value;
+
+                if (field === 'targetReps') {
+                  const repsCount = Number.isFinite(exercise.sets) ? exercise.sets : 1;
+                  const reps = Array(Math.max(1, repsCount)).fill(
+                    Number.isFinite(numeric as number) ? (numeric as number) : 0
+                  );
+                  return { ...exercise, targetReps: reps };
+                }
+
+                if (field === 'startingWeight') {
+                  const n = Number.isFinite(numeric as number) ? (numeric as number) : 0;
+                  return { ...exercise, startingWeight: n };
+                }
+
+                if (field === 'sets') {
+                  const nSets = Number.isFinite(numeric as number) ? Math.max(1, numeric as number) : 1;
+                  // Resize targetReps to match sets, using existing value or default 12
+                  const baseRep = Number.isFinite(exercise.targetReps[0]) ? exercise.targetReps[0] : 12;
+                  const reps = Array(nSets).fill(baseRep);
+                  return { ...exercise, sets: nSets, targetReps: reps };
+                }
+
+                return exercise;
+              }),
             }
           : workoutDay
       )
@@ -481,7 +516,7 @@ export function PlanBuilder() {
                     <div className="space-y-2">
                       {workoutDay.exercises.map((exercise, index) => (
                         <div
-                          className="flex items-center gap-3 rounded-lg border bg-background p-3 shadow-sm"
+                          className="flex flex-col gap-3 rounded-lg border bg-background p-3 shadow-sm sm:flex-row sm:items-center"
                           key={exercise.exerciseId + index}
                         >
                           <div className="min-w-0 flex-1">
@@ -492,62 +527,80 @@ export function PlanBuilder() {
                               {exercise.equipments.join(', ')} • {exercise.targetMuscles.join(', ')}
                             </p>
                             {/* Mini quick row to adjust all sets to same reps quickly */}
-                            <div className="mt-2 grid grid-cols-3 gap-2">
+                            <div className="mt-2 grid grid-cols-3 gap-2 sm:items-center">
                               <div className="flex items-center gap-1">
                                 <Input
-                                  className="h-8 w-20 text-xs bg-card border-foreground/20"
+                                  className="h-10 w-20 text-base bg-card border-foreground/20 text-foreground tracking-wide text-center sm:w-24"
                                   min="1"
+                                  inputMode="numeric"
                                   type="number"
-                                  value={exercise.sets}
+                                  value={
+                                    Number.isFinite(exercise.sets as unknown as number)
+                                      ? exercise.sets
+                                      : ''
+                                  }
                                   onChange={(e) =>
                                     updateExerciseTarget(
                                       dayIndex,
                                       exercise.exerciseId,
                                       'sets',
-                                      Number.parseInt(e.target.value) || 1
+                                      e.target.value === '' ? '' : Number.parseInt(e.target.value)
                                     )
                                   }
+                                  style={{ WebkitTextSizeAdjust: '100%' }}
                                 />
                                 <span className="text-foreground/80 text-xs">sets</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Input
-                                  className="h-8 w-20 text-xs bg-card border-foreground/20"
+                                  className="h-10 w-24 text-base bg-card border-foreground/20 text-foreground tracking-wide"
                                   min="1"
+                                  inputMode="numeric"
                                   type="number"
-                                  value={exercise.targetReps[0] || 12}
+                                  value={
+                                    Number.isFinite(exercise.targetReps[0] as unknown as number)
+                                      ? exercise.targetReps[0]
+                                      : ''
+                                  }
                                   onChange={(e) =>
                                     updateExerciseTarget(
                                       dayIndex,
                                       exercise.exerciseId,
                                       'targetReps',
-                                      Number.parseInt(e.target.value) || 1
+                                      e.target.value === '' ? '' : Number.parseInt(e.target.value)
                                     )
                                   }
+                                  style={{ WebkitTextSizeAdjust: '100%' }}
                                 />
                                 <span className="text-foreground/80 text-xs">reps</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Input
-                                  className="h-8 w-20 text-xs bg-card border-foreground/20"
+                                  className="h-10 w-24 text-base bg-card border-foreground/20 text-foreground tracking-wide text-center sm:w-28"
                                   min="0"
+                                  inputMode="decimal"
                                   type="number"
-                                  value={exercise.startingWeight}
+                                  value={
+                                    Number.isFinite(exercise.startingWeight as unknown as number)
+                                      ? exercise.startingWeight
+                                      : ''
+                                  }
                                   onChange={(e) =>
                                     updateExerciseTarget(
                                       dayIndex,
                                       exercise.exerciseId,
                                       'startingWeight',
-                                      Number.parseInt(e.target.value) || 0
+                                      e.target.value === '' ? '' : Number.parseInt(e.target.value)
                                     )
                                   }
+                                  style={{ WebkitTextSizeAdjust: '100%' }}
                                 />
                                 <span className="text-foreground/80 text-xs">lb</span>
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex flex-shrink-0 items-center gap-2">
+                          <div className="flex flex-shrink-0 items-center gap-2 self-start sm:self-auto">
                             <Button
                               className="h-8 w-8 text-foreground"
                               onClick={() =>
