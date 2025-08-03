@@ -104,6 +104,30 @@ export async function loadAvailablePlans(): Promise<WorkoutPlan[]> {
     }
   }
 
+  if (plans.length === 0) {
+    try {
+      const response = await fetch('/data/plans/3-month-machine-plan.json');
+      const defaultPlanData = await response.json();
+      const dayWorkouts = defaultPlanData.weeklySchedule.reduce(
+        (acc: any, item: any) => {
+          acc[item.day] = item.workout;
+          return acc;
+        },
+        {}
+      );
+
+      const defaultPlan: WorkoutPlan = {
+        ...defaultPlanData,
+        dayWorkouts
+      };
+      delete (defaultPlan as any).weeklySchedule;
+
+      plans.push(defaultPlan);
+    } catch (error) {
+      console.error('Error loading default plan:', error);
+    }
+  }
+
   return plans;
 }
 

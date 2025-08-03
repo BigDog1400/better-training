@@ -53,6 +53,24 @@ export function PlanSelector() {
     );
   }
 
+  if (plans.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
+        <h3 className="font-bold text-2xl">No Plans Available</h3>
+        <p className="text-muted-foreground mt-2">
+          Create a new plan to get started.
+        </p>
+        <Button
+          className="mt-4"
+          onClick={() => router.push('/plan/create')}
+          variant="outline"
+        >
+          Create New Plan
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <h2 className="font-bold text-2xl">Select a Training Plan</h2>
