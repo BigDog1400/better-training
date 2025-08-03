@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import '../index.css';
-import Header from '@/components/header';
 import Providers from '@/components/providers';
+import { AppShell } from '@/components/app-shell';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -30,16 +30,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          {/* App viewport wrapper: centers and constrains content like a mobile app */}
-          <div className="min-h-svh w-full flex items-stretch justify-center bg-background">
-            <div className="flex min-h-svh w-full max-w-[560px] flex-col">
-              {/* Top header kept minimal */}
-              <Header />
-              {/* Main content grows and scrolls behind sticky bottom navs if any */}
-              <main className="flex-1 overflow-y-auto">
-                <div className="px-4 py-4 sm:px-6 sm:py-6">{children}</div>
-              </main>
-            </div>
+          {/* Twitter-like 3-column responsive shell:
+              - md+: left icon nav, center content, right empty
+              - mobile: content + bottom tab bar */}
+          <div className="min-h-svh w-full">
+            <AppShell>{children}</AppShell>
           </div>
         </Providers>
       </body>
