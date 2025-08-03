@@ -99,6 +99,9 @@ export function WorkoutSession() {
         return;
       }
 
+      const exercisesData = await FileLoader.loadExercises();
+      setExercises(exercisesData);
+
       const sessionDateStr = searchParams.get('date');
       const sessionDate = sessionDateStr
         ? new Date(sessionDateStr)
@@ -142,10 +145,6 @@ export function WorkoutSession() {
         setLoading(false);
         return;
       }
-
-      // Get workout exercises with suggestions
-      const exercisesData = await FileLoader.loadExercises();
-      setExercises(exercisesData);
 
       // Use the determined workout type
       const workoutExercisesData = plan.workouts[nextWorkoutType] || [];
