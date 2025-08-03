@@ -7,12 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { loadAppData, saveAppData, loadPlan, loadExercises, type Exercise, type WorkoutExercise, getSuggestedWeight, type WorkoutPlan, type AppData } from "@/lib/localStorage";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 
 // Helper function to determine the next workout
-const getNextWorkoutType = (plan: WorkoutPlan, appData: AppData, startDayOffset = 0): string | null => {
-  const dayOfWeek = new Date().getDay();
+const getNextWorkoutType = (plan: WorkoutPlan, appData: AppData, date: Date, startDayOffset = 0): string | null => {
+  const dayOfWeek = date.getDay();
   
   // Start searching from today + offset
   for (let i = startDayOffset; i < 7 + startDayOffset; i++) {
@@ -50,10 +50,11 @@ export function WorkoutSession() {
   const [alreadyCompleted, setAlreadyCompleted] = useState(false);
   const [nextWorkout, setNextWorkout] = useState<{ name: string; exercises: WorkoutExercise[] } | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     initializeSession();
-  }, []);
+  }, [searchParams]);
 
   const initializeSession = async () => {
     try {
@@ -72,8 +73,11 @@ export function WorkoutSession() {
         return;
       }
 
+      const sessionDateStr = searchParams.get('date');
+      const sessionDate = sessionDateStr ? new Date(sessionDateStr) : new Date();
+      
       // Get next workout type
-      const nextWorkoutType = getNextWorkoutType(plan, appData);
+      const nextWorkoutType = getNextWorkoutType(plan, appData, sessionDate, 0);
       if (!nextWorkoutType) {
         // Handle case where no workout is scheduled
         router.push("/"); // Or a page indicating no workout
@@ -81,17 +85,19 @@ export function WorkoutSession() {
       }
       setWorkoutType(nextWorkoutType);
 
-      // Check if workout for today is already done
-      const today = new Date().toISOString().split('T')[0];
-      const todaysLog = appData.logs.find(log => log.date === today && log.workoutType === nextWorkoutType);
+      // Check if workout for the session date is already done
+      const dateStr = sessionDate.toISOString().split('T')[0];
+      const todaysLog = appData.logs.find(log => log.date === dateStr && log.workoutType === nextWorkoutType);
       if (todaysLog) {
         setAlreadyCompleted(true);
         
         // Find next workout for sneak peak
-        const nextWorkoutTypeAfterToday = getNextWorkoutType(plan, appData, 1);
-        if (nextWorkoutTypeAfterToday) {
-          const nextWorkoutExercises = plan.workouts[nextWorkoutTypeAfterToday] || [];
-          setNextWorkout({ name: nextWorkoutTypeAfterToday, exercises: nextWorkoutExercises });
+        const nextDate = new Date(sessionDate);
+        nextDate.setDate(nextDate.getDate() + 1);
+        const nextWorkoutTypeAfter = getNextWorkoutType(plan, appData, nextDate, 0);
+        if (nextWorkoutTypeAfter) {
+          const nextWorkoutExercises = plan.workouts[nextWorkoutTypeAfter] || [];
+          setNextWorkout({ name: nextWorkoutTypeAfter, exercises: nextWorkoutExercises });
         }
         
         setLoading(false);
@@ -161,10 +167,12 @@ export function WorkoutSession() {
 
   const finishSession = () => {
     const appData = loadAppData();
+    const sessionDateStr = searchParams.get('date');
+    const sessionDate = sessionDateStr ? new Date(sessionDateStr) : new Date();
     
     // Create workout session log
     const sessionLog = {
-      date: new Date().toISOString().split('T')[0],
+      date: sessionDate.toISOString().split('T')[0],
       workoutType: workoutType || "Unknown",
       exercises: logs
     };

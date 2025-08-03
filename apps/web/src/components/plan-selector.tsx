@@ -30,6 +30,7 @@ export function PlanSelector() {
   const selectPlan = (planId: string) => {
     const appData = loadAppData();
     appData.currentPlanId = planId;
+    appData.planStartedAt = new Date().toISOString();
     saveAppData(appData);
     router.push("/plan/current");
   };

@@ -122,9 +122,17 @@ export function PlanViewer() {
             ))}
           </div>
           
-          <Button onClick={startWorkout} className="w-full">
-            Start Workout Session
-          </Button>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Button onClick={startWorkout} className="w-full">
+              Start Workout Session
+            </Button>
+            <Button onClick={() => router.push('/history')} className="w-full" variant="outline">
+              View History
+            </Button>
+            <Button onClick={() => router.push('/workout/missing')} className="w-full" variant="outline">
+              Missing Sessions
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -36,6 +36,10 @@ export function Navigation() {
           <Button asChild variant="outline">
             <Link href="/history">History</Link>
           </Button>
+
+          <Button asChild variant="outline">
+            <Link href="/workout/missing">Missing Sessions</Link>
+          </Button>
           
           <Button asChild variant="outline">
             <Link href="/progress">Progress</Link>

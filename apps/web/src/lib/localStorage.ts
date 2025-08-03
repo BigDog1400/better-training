@@ -49,6 +49,7 @@ export interface WorkoutSessionLog {
 
 export interface AppData {
   currentPlanId: string | null;
+  planStartedAt: string | null;
   lastSessionDate: string | null;
   logs: WorkoutSessionLog[];
 }
@@ -124,6 +125,7 @@ export function loadAppData(): AppData {
     // Return default structure during server-side rendering
     return {
       currentPlanId: null,
+      planStartedAt: null,
       lastSessionDate: null,
       logs: []
     };
@@ -141,6 +143,7 @@ export function loadAppData(): AppData {
   // Return default structure if nothing found or error
   return {
     currentPlanId: null,
+    planStartedAt: null,
     lastSessionDate: null,
     logs: []
   };
