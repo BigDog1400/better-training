@@ -37,12 +37,33 @@ export class ExerciseService {
     return this.getExerciseByIdUseCase.execute(request);
   }
 
-  async getAllExercises(params: GetAllExercisesArgs) {
+  async getAllExercises(params: GetAllExercisesArgs & {
+    muscle?: string;
+    bodypart?: string;
+    equipment?: string;
+  }) {
+    const queryFilters: Record<string, any> = {};
+
+    if (params.search) {
+      queryFilters.search = params.search;
+    }
+
+    // Map single-value shortcuts to the use case query shape
+    if (params.muscle) {
+      queryFilters.targetMuscles = [params.muscle];
+    }
+    if (params.bodypart) {
+      queryFilters.bodyParts = [params.bodypart];
+    }
+    if (params.equipment) {
+      queryFilters.equipments = [params.equipment];
+    }
+
     const query: GetExercisesArgs = {
       offset: params.offset,
       limit: params.limit,
-      query: params.search ? { search: params.search } : {},
-      sort: params.sort
+      query: queryFilters,
+      sort: params.sort,
     };
 
     return this.getExercisesUseCase.execute(query);

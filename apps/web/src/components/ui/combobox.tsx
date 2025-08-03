@@ -28,6 +28,10 @@ interface Props<T extends object> {
     debounce?: number;
     // Keep popover open when selecting an item (for rapid multi-add flows)
     keepOpen?: boolean;
+
+    // OPTIONAL: Render a compact filters header inside the popover (above results)
+    // Use this to render dropdowns, chips, etc. that refine searchFn client-side.
+    renderFilters?: React.ReactNode;
 }
 const ComboBox = <T extends object>({
     title,
@@ -41,6 +45,7 @@ const ComboBox = <T extends object>({
     searchFn,
     debounce = 500,
     keepOpen = false,
+    renderFilters,
 }: Props<T>) => {
     const [search, setSearch] = useState<string>("");
     const [options, setOptions] = useState<T[]>([]);
@@ -102,11 +107,14 @@ const ComboBox = <T extends object>({
             </PopoverTrigger>
             <PopoverContent className="PopoverContent p-0">
                 <Command shouldFilter={false}>
-                    <CommandInput
-                        placeholder={`Search ${title}...`}
-                        value={typeof search === "string" ? search : ""}
-                        onValueChange={(value) => setSearch(value)}
-                    />
+                    <div className="space-y-1 p-2">
+                        {renderFilters}
+                        <CommandInput
+                            placeholder={`Search ${title}...`}
+                            value={typeof search === "string" ? search : ""}
+                            onValueChange={(value) => setSearch(value)}
+                        />
+                    </div>
                     <CommandList>
                         <CommandEmpty>No item found.</CommandEmpty>
                         <CommandGroup className="max-h-60 overflow-y-auto">
