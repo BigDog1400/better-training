@@ -26,6 +26,7 @@ import {
   saveAppData,
 } from '@/lib/localStorage';
 import { FileLoader } from '@/data/load';
+import { ExerciseSelector } from './exercise-selector';
 
 interface PlanExercise extends Exercise {
   targetReps: number[];
@@ -69,8 +70,7 @@ export function PlanBuilder() {
     }
   };
 
-  const addExerciseToWorkoutDay = (dayIndex: number, exerciseId: string) => {
-    const exercise = exercises.find((e) => e.exerciseId === exerciseId);
+  const addExerciseToWorkoutDay = (dayIndex: number, exercise: Exercise) => {
     if (exercise) {
       setWorkoutDays(
         workoutDays.map((workoutDay, index) =>
@@ -255,8 +255,6 @@ export function PlanBuilder() {
     setWorkoutDays(workoutDays.filter((_, index) => index !== dayIndex));
   };
 
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
   if (loading) {
     return (
       <div className="flex h-32 items-center justify-center">
@@ -383,27 +381,11 @@ export function PlanBuilder() {
 
                 <div className="space-y-2">
                   <Label>Add Exercise</Label>
-                  <Select
-                    onValueChange={(value) =>
-                      addExerciseToWorkoutDay(dayIndex, value)
+                  <ExerciseSelector
+                    onSelect={(exercise) =>
+                      addExerciseToWorkoutDay(dayIndex, exercise)
                     }
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Select an exercise to add" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {exercises
-                        .filter(
-                          (e) =>
-                            !workoutDay.exercises.some((pe) => pe.exerciseId === e.exerciseId)
-                        )
-                        .map((exercise) => (
-                          <SelectItem key={exercise.exerciseId} value={exercise.exerciseId}>
-                            {exercise.name} ({exercise.targetMuscles.join(', ')})
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
 
                 {workoutDays.length > 1 && (
@@ -449,7 +431,7 @@ export function PlanBuilder() {
                           <div className="flex flex-shrink-0 items-center gap-2">
                             <div className="flex items-center gap-1">
                               <Input
-                                className="h-8 w-12 text-xs"
+                                className="h-8 w-20 text-xs"
                                 min="1"
                                 onChange={(e) =>
                                   updateExerciseTarget(
@@ -470,7 +452,7 @@ export function PlanBuilder() {
 
                             <div className="flex items-center gap-1">
                               <Input
-                                className="h-8 w-12 text-xs"
+                                className="h-8 w-20 text-xs"
                                 min="1"
                                 onChange={(e) =>
                                   updateExerciseTarget(
@@ -491,7 +473,7 @@ export function PlanBuilder() {
 
                             <div className="flex items-center gap-1">
                               <Input
-                                className="h-8 w-12 text-xs"
+                                className="h-8 w-20 text-xs"
                                 min="1"
                                 onChange={(e) =>
                                   updateExerciseTarget(

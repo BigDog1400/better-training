@@ -108,7 +108,7 @@ importers:
         specifier: ^1.12.3
         version: 1.15.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@tanstack/react-query':
-        specifier: ^5.80.5
+        specifier: ^5.84.1
         version: 5.84.1(react@19.1.1)
       class-variance-authority:
         specifier: ^0.7.1
