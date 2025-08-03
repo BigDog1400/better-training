@@ -1,9 +1,15 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { loadAppData, loadExercises, type Exercise } from "@/lib/localStorage";
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { type Exercise, loadAppData, loadExercises } from '@/lib/localStorage';
 
 interface LogViewerProps {
   limit?: number; // Show only the last N sessions
@@ -11,36 +17,49 @@ interface LogViewerProps {
 
 function exportToCSV(logs: any[], exercises: Exercise[]) {
   // Create a map of exercise IDs to names for quick lookup
-  const exerciseMap = new Map(exercises.map(ex => [ex.id, ex.name]));
-  
+  const exerciseMap = new Map(exercises.map((ex) => [ex.id, ex.name]));
+
   // CSV header
-  const headers = ['Date', 'Workout Type', 'Exercise', 'Set', 'Target Reps', 'Target Weight', 'Actual Reps', 'Actual Weight', 'Effort', 'Notes'];
-  
+  const headers = [
+    'Date',
+    'Workout Type',
+    'Exercise',
+    'Set',
+    'Target Reps',
+    'Target Weight',
+    'Actual Reps',
+    'Actual Weight',
+    'Effort',
+    'Notes',
+  ];
+
   // CSV rows
   const rows: string[] = [];
-  
-  logs.forEach(log => {
+
+  logs.forEach((log) => {
     log.exercises.forEach((exercise: any) => {
       exercise.sets.forEach((set: any, index: number) => {
-        rows.push([
-          log.date,
-          log.workoutType,
-          exerciseMap.get(exercise.exerciseId) || exercise.exerciseId,
-          index + 1,
-          exercise.targetReps[index] || exercise.targetReps[0],
-          exercise.targetWeight,
-          set.reps,
-          set.weight,
-          exercise.effort,
-          `"${exercise.notes.replace(/"/g, '""')}"` // Escape quotes in notes
-        ].join(','));
+        rows.push(
+          [
+            log.date,
+            log.workoutType,
+            exerciseMap.get(exercise.exerciseId) || exercise.exerciseId,
+            index + 1,
+            exercise.targetReps[index] || exercise.targetReps[0],
+            exercise.targetWeight,
+            set.reps,
+            set.weight,
+            exercise.effort,
+            `"${exercise.notes.replace(/"/g, '""')}"`, // Escape quotes in notes
+          ].join(',')
+        );
       });
     });
   });
-  
+
   // Combine headers and rows
   const csvContent = [headers.join(','), ...rows].join('\n');
-  
+
   // Create blob and download
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -67,30 +86,36 @@ export function LogViewer({ limit }: LogViewerProps) {
       const appData = loadAppData();
       const exercisesData = await loadExercises();
       setExercises(exercisesData);
-      
+
       // Sort logs by date (newest first)
-      const sortedLogs = [...appData.logs].sort((a, b) => 
-        new Date(b.date).getTime() - new Date(a.date).getTime()
+      const sortedLogs = [...appData.logs].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
       );
-      
+
       // Apply limit if specified
       const limitedLogs = limit ? sortedLogs.slice(0, limit) : sortedLogs;
       setLogs(limitedLogs);
     } catch (error) {
-      console.error("Error loading logs:", error);
+      console.error('Error loading logs:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const getExerciseName = (exerciseId: string) => {
-    const exercise = exercises.find(e => e.id === exerciseId);
+    const exercise = exercises.find((e) => e.id === exerciseId);
     return exercise ? exercise.name : exerciseId;
   };
 
   const calculateProgressScore = (exercise: any) => {
-    const totalActualReps = exercise.sets.reduce((sum: number, set: any) => sum + set.reps, 0);
-    const totalTargetReps = exercise.targetReps.reduce((sum: number, reps: number) => sum + reps, 0);
+    const totalActualReps = exercise.sets.reduce(
+      (sum: number, set: any) => sum + set.reps,
+      0
+    );
+    const totalTargetReps = exercise.targetReps.reduce(
+      (sum: number, reps: number) => sum + reps,
+      0
+    );
     if (totalTargetReps === 0) return 0;
     const repRatio = totalActualReps / totalTargetReps;
     // Simple progress score: rep ratio * effort (normalized)
@@ -100,8 +125,8 @@ export function LogViewer({ limit }: LogViewerProps) {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+      <div className="flex h-32 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-gray-900 border-b-2 dark:border-gray-100" />
       </div>
     );
   }
@@ -110,7 +135,7 @@ export function LogViewer({ limit }: LogViewerProps) {
     return (
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex items-center justify-between">
             <div>
               <CardTitle>No Workout History</CardTitle>
               <CardDescription>
@@ -120,7 +145,7 @@ export function LogViewer({ limit }: LogViewerProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Start a workout session to begin tracking your progress!
           </p>
         </CardContent>
@@ -130,25 +155,28 @@ export function LogViewer({ limit }: LogViewerProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Workout History</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-2xl">Workout History</h2>
         {logs.length > 0 && (
-          <Button onClick={() => exportToCSV(logs, exercises)} variant="outline">
+          <Button
+            onClick={() => exportToCSV(logs, exercises)}
+            variant="outline"
+          >
             Export to CSV
           </Button>
         )}
       </div>
-      
+
       <div className="space-y-3">
         {logs.map((log, index) => (
           <Card key={index}>
             <CardHeader>
-              <div className="flex justify-between items-start">
+              <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-lg">{log.workoutType}</CardTitle>
                   <CardDescription>{log.date}</CardDescription>
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-muted-foreground text-sm">
                   {log.exercises.length} exercises
                 </div>
               </div>
@@ -157,35 +185,53 @@ export function LogViewer({ limit }: LogViewerProps) {
               <div className="space-y-3">
                 {log.exercises.map((exercise: any, exIndex: number) => {
                   const progressScore = calculateProgressScore(exercise);
-                  
+
                   return (
-                    <div key={exIndex} className="border-b pb-3 last:border-b-0 last:pb-0">
-                      <div className="flex justify-between items-center">
-                        <h3 className="font-medium">{getExerciseName(exercise.exerciseId)}</h3>
-                        <span className="text-sm text-muted-foreground">
+                    <div
+                      className="border-b pb-3 last:border-b-0 last:pb-0"
+                      key={exIndex}
+                    >
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium">
+                          {getExerciseName(exercise.exerciseId)}
+                        </h3>
+                        <span className="text-muted-foreground text-sm">
                           Score: {progressScore}%
                         </span>
                       </div>
-                      
+
                       {exercise.sets.map((set: any, setIndex: number) => (
-                        <div key={setIndex} className="grid grid-cols-3 gap-2 mt-2 text-sm">
-                          <div className="bg-muted p-2 rounded">
-                            <div className="text-muted-foreground">Set {setIndex + 1} Target</div>
-                            <div>{exercise.targetReps[setIndex] || exercise.targetReps[0]} reps @ {exercise.targetWeight} lbs</div>
+                        <div
+                          className="mt-2 grid grid-cols-3 gap-2 text-sm"
+                          key={setIndex}
+                        >
+                          <div className="rounded bg-muted p-2">
+                            <div className="text-muted-foreground">
+                              Set {setIndex + 1} Target
+                            </div>
+                            <div>
+                              {exercise.targetReps[setIndex] ||
+                                exercise.targetReps[0]}{' '}
+                              reps @ {exercise.targetWeight} lbs
+                            </div>
                           </div>
-                          
-                          <div className="bg-muted p-2 rounded">
-                            <div className="text-muted-foreground">Set {setIndex + 1} Actual</div>
-                            <div>{set.reps} reps @ {set.weight} lbs</div>
+
+                          <div className="rounded bg-muted p-2">
+                            <div className="text-muted-foreground">
+                              Set {setIndex + 1} Actual
+                            </div>
+                            <div>
+                              {set.reps} reps @ {set.weight} lbs
+                            </div>
                           </div>
-                          
-                          <div className="bg-muted p-2 rounded">
+
+                          <div className="rounded bg-muted p-2">
                             <div className="text-muted-foreground">Effort</div>
                             <div>{exercise.effort}/5 stars</div>
                           </div>
                         </div>
                       ))}
-                      
+
                       {exercise.notes && (
                         <div className="mt-2 text-sm">
                           <div className="text-muted-foreground">Notes:</div>

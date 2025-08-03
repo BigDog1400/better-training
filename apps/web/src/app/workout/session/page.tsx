@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { WorkoutSession } from "@/components/workout-session";
+import { WorkoutSession } from '@/components/workout-session';
 
 export default function WorkoutSessionPage() {
   return (

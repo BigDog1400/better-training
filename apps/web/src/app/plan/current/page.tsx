@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { PlanViewer } from "@/components/plan-viewer";
+import { PlanViewer } from '@/components/plan-viewer';
 
 export default function CurrentPlanPage() {
   return (

@@ -76,7 +76,7 @@ export async function loadPlan(planId: string): Promise<WorkoutPlan | null> {
   if (typeof window === 'undefined') {
     return null;
   }
-  
+
   try {
     const data = localStorage.getItem(`betterTrainingPlan_${planId}`);
     if (data) {
@@ -86,7 +86,7 @@ export async function loadPlan(planId: string): Promise<WorkoutPlan | null> {
     console.error(`Error loading plan ${planId} from localStorage:`, error);
     return null;
   }
-  
+
   return null;
 }
 
@@ -96,9 +96,9 @@ export async function loadAvailablePlans(): Promise<WorkoutPlan[]> {
   if (typeof window === 'undefined') {
     return [];
   }
-  
+
   const plans: WorkoutPlan[] = [];
-  
+
   // Get all items from localStorage that start with 'betterTrainingPlan_'
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
@@ -114,7 +114,7 @@ export async function loadAvailablePlans(): Promise<WorkoutPlan[]> {
       }
     }
   }
-  
+
   return plans;
 }
 
@@ -127,10 +127,10 @@ export function loadAppData(): AppData {
       currentPlanId: null,
       planStartedAt: null,
       lastSessionDate: null,
-      logs: []
+      logs: [],
     };
   }
-  
+
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     if (data) {
@@ -139,13 +139,13 @@ export function loadAppData(): AppData {
   } catch (error) {
     console.error('Error loading app data from localStorage:', error);
   }
-  
+
   // Return default structure if nothing found or error
   return {
     currentPlanId: null,
     planStartedAt: null,
     lastSessionDate: null,
-    logs: []
+    logs: [],
   };
 }
 
@@ -154,7 +154,7 @@ export function saveAppData(data: AppData): void {
   if (typeof window === 'undefined') {
     return;
   }
-  
+
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
@@ -168,7 +168,7 @@ export function savePlan(plan: WorkoutPlan): void {
   if (typeof window === 'undefined') {
     return;
   }
-  
+
   try {
     localStorage.setItem(`betterTrainingPlan_${plan.id}`, JSON.stringify(plan));
   } catch (error) {
@@ -182,14 +182,17 @@ export function getSuggestedWeight(lastLog: ExerciseLog): number {
   if (!lastSet) return lastLog.targetWeight;
 
   const { reps, weight } = lastSet;
-  const targetReps = lastLog.targetReps[lastLog.sets.length - 1] || lastLog.targetReps[0];
+  const targetReps =
+    lastLog.targetReps[lastLog.sets.length - 1] || lastLog.targetReps[0];
   const repRatio = reps / targetReps;
 
   if (repRatio >= 1 && lastLog.effort <= 3) {
     return Math.round(weight * 1.05); // +5%
-  } else if (repRatio >= 1 && lastLog.effort === 4) {
+  }
+  if (repRatio >= 1 && lastLog.effort === 4) {
     return weight; // keep
-  } else if (repRatio < 0.8 || lastLog.effort === 5) {
+  }
+  if (repRatio < 0.8 || lastLog.effort === 5) {
     return Math.round(weight * 0.95); // -5%
   }
   return weight;
@@ -199,12 +202,12 @@ export function getSuggestedWeight(lastLog: ExerciseLog): number {
 export function getNextWorkout(plan: WorkoutPlan): string | null {
   // Get today's day (0 = Sunday, 1 = Monday, etc.)
   const today = new Date().getDay();
-  
+
   // Check if there's a workout scheduled for today
   if (plan.dayWorkouts[today]) {
     return plan.dayWorkouts[today];
   }
-  
+
   // If not, look for the next scheduled workout
   for (let i = 1; i <= 7; i++) {
     const nextDay = (today + i) % 7;
@@ -212,38 +215,44 @@ export function getNextWorkout(plan: WorkoutPlan): string | null {
       return plan.dayWorkouts[nextDay];
     }
   }
-  
+
   // If no workouts are scheduled, return null
   return null;
 }
 
 // Get suggested weights for all exercises in a workout based on last session
-export function getWorkoutSuggestions(plan: WorkoutPlan, workoutType: string, logs: WorkoutSessionLog[]): WorkoutExercise[] {
+export function getWorkoutSuggestions(
+  plan: WorkoutPlan,
+  workoutType: string,
+  logs: WorkoutSessionLog[]
+): WorkoutExercise[] {
   const workoutExercises = plan.workouts[workoutType] || [];
-  
+
   // Find the last session of this workout type
   const lastSession = logs
-    .filter(log => log.workoutType === workoutType)
+    .filter((log) => log.workoutType === workoutType)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .find(() => true);
-  
+
   if (!lastSession) {
     // No previous session, return starting weights
     return workoutExercises;
   }
-  
+
   // Map exercises with suggested weights based on last session
-  return workoutExercises.map(exercise => {
-    const lastExerciseLog = lastSession.exercises.find(log => log.exerciseId === exercise.exerciseId);
-    
+  return workoutExercises.map((exercise) => {
+    const lastExerciseLog = lastSession.exercises.find(
+      (log) => log.exerciseId === exercise.exerciseId
+    );
+
     if (lastExerciseLog) {
       const suggestedWeight = getSuggestedWeight(lastExerciseLog);
       return {
         ...exercise,
-        startingWeight: suggestedWeight
+        startingWeight: suggestedWeight,
       };
     }
-    
+
     // No previous log for this exercise, keep original starting weight
     return exercise;
   });

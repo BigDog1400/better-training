@@ -1,19 +1,40 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { loadAppData, saveAppData, loadPlan, loadExercises, type Exercise, type WorkoutExercise, getSuggestedWeight, type WorkoutPlan, type AppData } from "@/lib/localStorage";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  type AppData,
+  type Exercise,
+  getSuggestedWeight,
+  loadAppData,
+  loadExercises,
+  loadPlan,
+  saveAppData,
+  type WorkoutExercise,
+  type WorkoutPlan,
+} from '@/lib/localStorage';
 
 // Helper function to determine the next workout
-const getNextWorkoutType = (plan: WorkoutPlan, appData: AppData, date: Date, startDayOffset = 0): string | null => {
+const getNextWorkoutType = (
+  plan: WorkoutPlan,
+  appData: AppData,
+  date: Date,
+  startDayOffset = 0
+): string | null => {
   const dayOfWeek = date.getDay();
-  
+
   // Start searching from today + offset
   for (let i = startDayOffset; i < 7 + startDayOffset; i++) {
     const nextDay = (dayOfWeek + i) % 7;
@@ -43,12 +64,17 @@ export function WorkoutSession() {
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
   const [workoutType, setWorkoutType] = useState<string | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>([]);
+  const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>(
+    []
+  );
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [logs, setLogs] = useState<ExerciseLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [alreadyCompleted, setAlreadyCompleted] = useState(false);
-  const [nextWorkout, setNextWorkout] = useState<{ name: string; exercises: WorkoutExercise[] } | null>(null);
+  const [nextWorkout, setNextWorkout] = useState<{
+    name: string;
+    exercises: WorkoutExercise[];
+  } | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -60,82 +86,104 @@ export function WorkoutSession() {
     try {
       const appData = loadAppData();
       setCurrentPlanId(appData.currentPlanId);
-      
+
       if (!appData.currentPlanId) {
-        router.push("/");
+        router.push('/');
         return;
       }
 
       // Load plan
       const plan = await loadPlan(appData.currentPlanId);
       if (!plan) {
-        router.push("/");
+        router.push('/');
         return;
       }
 
       const sessionDateStr = searchParams.get('date');
-      const sessionDate = sessionDateStr ? new Date(sessionDateStr) : new Date();
-      
+      const sessionDate = sessionDateStr
+        ? new Date(sessionDateStr)
+        : new Date();
+
       // Get next workout type
       const nextWorkoutType = getNextWorkoutType(plan, appData, sessionDate, 0);
       if (!nextWorkoutType) {
         // Handle case where no workout is scheduled
-        router.push("/"); // Or a page indicating no workout
+        router.push('/'); // Or a page indicating no workout
         return;
       }
       setWorkoutType(nextWorkoutType);
 
       // Check if workout for the session date is already done
       const dateStr = sessionDate.toISOString().split('T')[0];
-      const todaysLog = appData.logs.find(log => log.date === dateStr && log.workoutType === nextWorkoutType);
+      const todaysLog = appData.logs.find(
+        (log) => log.date === dateStr && log.workoutType === nextWorkoutType
+      );
       if (todaysLog) {
         setAlreadyCompleted(true);
-        
+
         // Find next workout for sneak peak
         const nextDate = new Date(sessionDate);
         nextDate.setDate(nextDate.getDate() + 1);
-        const nextWorkoutTypeAfter = getNextWorkoutType(plan, appData, nextDate, 0);
+        const nextWorkoutTypeAfter = getNextWorkoutType(
+          plan,
+          appData,
+          nextDate,
+          0
+        );
         if (nextWorkoutTypeAfter) {
-          const nextWorkoutExercises = plan.workouts[nextWorkoutTypeAfter] || [];
-          setNextWorkout({ name: nextWorkoutTypeAfter, exercises: nextWorkoutExercises });
+          const nextWorkoutExercises =
+            plan.workouts[nextWorkoutTypeAfter] || [];
+          setNextWorkout({
+            name: nextWorkoutTypeAfter,
+            exercises: nextWorkoutExercises,
+          });
         }
-        
+
         setLoading(false);
         return;
       }
-      
+
       // Get workout exercises with suggestions
       const exercisesData = await loadExercises();
       setExercises(exercisesData);
-      
+
       // Use the determined workout type
       const workoutExercisesData = plan.workouts[nextWorkoutType] || [];
       setWorkoutExercises(workoutExercisesData);
-      
+
       // Initialize logs with suggested weights
-      const initialLogs = workoutExercisesData.map(exercise => {
+      const initialLogs = workoutExercisesData.map((exercise) => {
         // Find last log for this exercise to get suggestion
         const lastSession = appData.logs
-          .filter(log => log.workoutType === nextWorkoutType)
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .filter((log) => log.workoutType === nextWorkoutType)
+          .sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          )
           .find(() => true);
-        
-        const lastExerciseLog = lastSession?.exercises.find(log => log.exerciseId === exercise.exerciseId);
-        const suggestedWeight = lastExerciseLog ? getSuggestedWeight(lastExerciseLog) : exercise.startingWeight;
-        
+
+        const lastExerciseLog = lastSession?.exercises.find(
+          (log) => log.exerciseId === exercise.exerciseId
+        );
+        const suggestedWeight = lastExerciseLog
+          ? getSuggestedWeight(lastExerciseLog)
+          : exercise.startingWeight;
+
         return {
           exerciseId: exercise.exerciseId,
           targetReps: exercise.targetReps,
           targetWeight: suggestedWeight,
-          sets: exercise.targetReps.map(reps => ({ reps, weight: suggestedWeight })),
+          sets: exercise.targetReps.map((reps) => ({
+            reps,
+            weight: suggestedWeight,
+          })),
           effort: 3,
-          notes: ""
+          notes: '',
         };
       });
-      
+
       setLogs(initialLogs);
     } catch (error) {
-      console.error("Error initializing workout session:", error);
+      console.error('Error initializing workout session:', error);
     } finally {
       setLoading(false);
     }
@@ -147,7 +195,11 @@ export function WorkoutSession() {
     setLogs(newLogs);
   };
 
-  const updateSetLog = (setIndex: number, field: keyof SetLog, value: number) => {
+  const updateSetLog = (
+    setIndex: number,
+    field: keyof SetLog,
+    value: number
+  ) => {
     const newLogs = [...logs];
     newLogs[currentExerciseIndex].sets[setIndex][field] = value;
     setLogs(newLogs);
@@ -169,33 +221,35 @@ export function WorkoutSession() {
     const appData = loadAppData();
     const sessionDateStr = searchParams.get('date');
     const sessionDate = sessionDateStr ? new Date(sessionDateStr) : new Date();
-    
+
     // Create workout session log
     const sessionLog = {
       date: sessionDate.toISOString().split('T')[0],
-      workoutType: workoutType || "Unknown",
-      exercises: logs
+      workoutType: workoutType || 'Unknown',
+      exercises: logs,
     };
-    
+
     // Add to logs
     appData.logs.push(sessionLog);
     appData.lastSessionDate = sessionLog.date;
-    
+
     // Save to localStorage
     saveAppData(appData);
-    
+
     // Redirect to history page
-    router.push("/history");
+    router.push('/history');
   };
 
   const currentExercise = workoutExercises[currentExerciseIndex];
-  const currentExerciseData = currentExercise ? exercises.find(e => e.id === currentExercise.exerciseId) : null;
+  const currentExerciseData = currentExercise
+    ? exercises.find((e) => e.id === currentExercise.exerciseId)
+    : null;
   const currentLog = logs[currentExerciseIndex];
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+      <div className="flex h-32 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-gray-900 border-b-2 dark:border-gray-100" />
       </div>
     );
   }
@@ -211,12 +265,12 @@ export function WorkoutSession() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => router.push("/history")}>
+            <Button onClick={() => router.push('/history')}>
               View History
             </Button>
           </CardContent>
         </Card>
-        
+
         {nextWorkout && (
           <Card>
             <CardHeader>
@@ -228,9 +282,15 @@ export function WorkoutSession() {
             <CardContent>
               <div className="space-y-2">
                 {nextWorkout.exercises.map((exercise, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 bg-muted rounded-lg">
-                    <h4 className="font-medium">{exercises.find(e => e.id === exercise.exerciseId)?.name || exercise.exerciseId}</h4>
-                    <p className="text-sm text-muted-foreground">
+                  <div
+                    className="flex items-center justify-between rounded-lg bg-muted p-2"
+                    key={index}
+                  >
+                    <h4 className="font-medium">
+                      {exercises.find((e) => e.id === exercise.exerciseId)
+                        ?.name || exercise.exerciseId}
+                    </h4>
+                    <p className="text-muted-foreground text-sm">
                       {exercise.targetReps.join(' / ')} reps
                     </p>
                   </div>
@@ -243,7 +303,7 @@ export function WorkoutSession() {
     );
   }
 
-  if (!currentPlanId || !workoutType || workoutExercises.length === 0) {
+  if (!(currentPlanId && workoutType) || workoutExercises.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -253,7 +313,7 @@ export function WorkoutSession() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => router.push("/plan/select")}>
+          <Button onClick={() => router.push('/plan/select')}>
             Select Plan
           </Button>
         </CardContent>
@@ -263,102 +323,116 @@ export function WorkoutSession() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Workout Session</h2>
-        <div className="text-sm text-muted-foreground">
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-2xl">Workout Session</h2>
+        <div className="text-muted-foreground text-sm">
           Exercise {currentExerciseIndex + 1} of {workoutExercises.length}
         </div>
       </div>
-      
+
       {currentExerciseData && currentLog && (
         <Card>
           <CardHeader>
             <CardTitle>{currentExerciseData.name}</CardTitle>
-            <CardDescription>
-              {currentExerciseData.machine}
-            </CardDescription>
+            <CardDescription>{currentExerciseData.machine}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 {currentExerciseData.instructions}
               </p>
             </div>
-            
-      
+
             <div className="space-y-4">
               {currentLog.sets.map((set, index) => (
-                <div key={index} className="grid grid-cols-2 gap-4 items-center">
+                <div
+                  className="grid grid-cols-2 items-center gap-4"
+                  key={index}
+                >
                   <div className="space-y-2">
                     <Label htmlFor={`weight-${index}`}>Weight (lbs)</Label>
                     <Input
                       id={`weight-${index}`}
+                      onChange={(e) =>
+                        updateSetLog(
+                          index,
+                          'weight',
+                          Number.parseInt(e.target.value) || 0
+                        )
+                      }
                       type="number"
                       value={set.weight}
-                      onChange={(e) => updateSetLog(index, 'weight', parseInt(e.target.value) || 0)}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`reps-${index}`}>Reps</Label>
                     <Input
                       id={`reps-${index}`}
+                      onChange={(e) =>
+                        updateSetLog(
+                          index,
+                          'reps',
+                          Number.parseInt(e.target.value) || 0
+                        )
+                      }
                       type="number"
                       value={set.reps}
-                      onChange={(e) => updateSetLog(index, 'reps', parseInt(e.target.value) || 0)}
                     />
                   </div>
                 </div>
               ))}
-              
+
               <div className="space-y-2">
                 <Label>Effort Level</Label>
                 <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map((level) => (
                     <Button
+                      className={
+                        currentLog.effort >= level
+                          ? 'text-yellow-500'
+                          : 'text-gray-300'
+                      }
                       key={level}
-                      variant="ghost"
-                      size="icon"
                       onClick={() => updateLog('effort', level)}
-                      className={currentLog.effort >= level ? "text-yellow-500" : "text-gray-300"}
+                      size="icon"
+                      variant="ghost"
                     >
                       <Star className="h-6 w-6 fill-current" />
                     </Button>
                   ))}
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-muted-foreground text-xs">
                   1 = Easy, 5 = Maximum Effort
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes (Optional)</Label>
                 <Textarea
                   id="notes"
-                  value={currentLog.notes}
                   onChange={(e) => updateLog('notes', e.target.value)}
                   placeholder="How did that feel? Any observations?"
+                  value={currentLog.notes}
                 />
               </div>
             </div>
-            
+
             <div className="flex justify-between">
               <Button
-                variant="outline"
-                onClick={prevExercise}
                 disabled={currentExerciseIndex === 0}
+                onClick={prevExercise}
+                variant="outline"
               >
-                <ChevronLeft className="h-4 w-4 mr-2" />
+                <ChevronLeft className="mr-2 h-4 w-4" />
                 Previous
               </Button>
-              
+
               {currentExerciseIndex === workoutExercises.length - 1 ? (
-                <Button onClick={finishSession}>
-                  Finish Workout
-                </Button>
+                <Button onClick={finishSession}>Finish Workout</Button>
               ) : (
                 <Button onClick={nextExercise}>
                   Next Exercise
-                  <ChevronRight className="h-4 w-4 ml-2" />
+                  <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               )}
             </div>

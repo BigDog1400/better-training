@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { LogViewer } from "@/components/log-viewer";
+import { LogViewer } from '@/components/log-viewer';
 
 export default function HistoryPage() {
   return (

@@ -1,10 +1,16 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { loadAppData, loadPlan, type WorkoutPlan } from "@/lib/localStorage";
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { loadAppData, loadPlan, type WorkoutPlan } from '@/lib/localStorage';
 
 interface MissingSession {
   date: string;
@@ -34,10 +40,12 @@ export function MissingSessions() {
         return;
       }
 
-      const today = new Date()
-      const startDate = appData.planStartedAt ? new Date(appData.planStartedAt) : today;
+      const today = new Date();
+      const startDate = appData.planStartedAt
+        ? new Date(appData.planStartedAt)
+        : today;
 
-      const loggedDates = new Set(appData.logs.map(log => log.date));
+      const loggedDates = new Set(appData.logs.map((log) => log.date));
       const missing: MissingSession[] = [];
 
       for (let d = startDate; d <= today; d.setDate(d.getDate() + 1)) {
@@ -52,7 +60,7 @@ export function MissingSessions() {
 
       setMissingSessions(missing);
     } catch (error) {
-      console.error("Error finding missing sessions:", error);
+      console.error('Error finding missing sessions:', error);
     } finally {
       setLoading(false);
     }
@@ -64,8 +72,8 @@ export function MissingSessions() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+      <div className="flex h-32 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-gray-900 border-b-2 dark:border-gray-100" />
       </div>
     );
   }
@@ -75,7 +83,8 @@ export function MissingSessions() {
       <CardHeader>
         <CardTitle>Missing Workout Sessions</CardTitle>
         <CardDescription>
-          Here are your scheduled workouts that you haven't logged since you started your plan.
+          Here are your scheduled workouts that you haven't logged since you
+          started your plan.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -84,12 +93,19 @@ export function MissingSessions() {
         ) : (
           <div className="space-y-2">
             {missingSessions.map((session, index) => (
-              <div key={index} className="flex justify-between items-center p-3 bg-muted rounded-lg">
+              <div
+                className="flex items-center justify-between rounded-lg bg-muted p-3"
+                key={index}
+              >
                 <div>
                   <h4 className="font-medium">{session.workoutType}</h4>
-                  <p className="text-sm text-muted-foreground">{session.date}</p>
+                  <p className="text-muted-foreground text-sm">
+                    {session.date}
+                  </p>
                 </div>
-                <Button onClick={() => logMissingSession(session.date)}>Log Session</Button>
+                <Button onClick={() => logMissingSession(session.date)}>
+                  Log Session
+                </Button>
               </div>
             ))}
           </div>

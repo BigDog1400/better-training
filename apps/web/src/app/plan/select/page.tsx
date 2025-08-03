@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { PlanSelector } from "@/components/plan-selector";
+import { PlanSelector } from '@/components/plan-selector';
 
 export default function PlanSelectPage() {
   return (

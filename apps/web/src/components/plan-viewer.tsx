@@ -1,15 +1,27 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { loadAppData, loadPlan, loadExercises, type Exercise, type WorkoutPlan } from "@/lib/localStorage";
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  type Exercise,
+  loadAppData,
+  loadExercises,
+  loadPlan,
+  type WorkoutPlan,
+} from '@/lib/localStorage';
 
 export function PlanViewer() {
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -19,43 +31,43 @@ export function PlanViewer() {
   const loadPlanData = async () => {
     try {
       const appData = loadAppData();
-      
+
       if (!appData.currentPlanId) {
-        router.push("/plan/select");
+        router.push('/plan/select');
         return;
       }
 
       // Load plan
       const planData = await loadPlan(appData.currentPlanId);
       if (!planData) {
-        router.push("/plan/select");
+        router.push('/plan/select');
         return;
       }
 
       setPlan(planData);
-      
+
       // Load exercises
       const exercisesData = await loadExercises();
       setExercises(exercisesData);
     } catch (error) {
-      console.error("Error loading plan data:", error);
+      console.error('Error loading plan data:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const getExerciseDetails = (exerciseId: string) => {
-    return exercises.find(e => e.id === exerciseId) || null;
+    return exercises.find((e) => e.id === exerciseId) || null;
   };
 
   const startWorkout = () => {
-    router.push("/workout/session");
+    router.push('/workout/session');
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+      <div className="flex h-32 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-gray-900 border-b-2 dark:border-gray-100" />
       </div>
     );
   }
@@ -70,7 +82,7 @@ export function PlanViewer() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => router.push("/plan/select")}>
+          <Button onClick={() => router.push('/plan/select')}>
             Select Plan
           </Button>
         </CardContent>
@@ -80,38 +92,44 @@ export function PlanViewer() {
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const scheduleDays = Object.entries(plan.dayWorkouts)
-    .map(([day, workout]) => `${dayNames[parseInt(day)]}: ${workout}`)
+    .map(([day, workout]) => `${dayNames[Number.parseInt(day)]}: ${workout}`)
     .join(', ');
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Current Plan</h2>
-      
+      <h2 className="font-bold text-2xl">Current Plan</h2>
+
       <Card>
         <CardHeader>
           <CardTitle>{plan.name}</CardTitle>
-          <CardDescription>
-            {plan.durationWeeks} weeks duration
-          </CardDescription>
+          <CardDescription>{plan.durationWeeks} weeks duration</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="text-sm text-muted-foreground">
+          <div className="text-muted-foreground text-sm">
             Workout days: {scheduleDays}
           </div>
-          
+
           <div className="space-y-4">
             {Object.entries(plan.workouts).map(([workoutName, exercises]) => (
-              <div key={workoutName} className="space-y-2">
+              <div className="space-y-2" key={workoutName}>
                 <h3 className="font-medium text-lg">{workoutName}</h3>
                 <div className="space-y-2">
                   {exercises.map((exercise, index) => {
-                    const exerciseDetails = getExerciseDetails(exercise.exerciseId);
+                    const exerciseDetails = getExerciseDetails(
+                      exercise.exerciseId
+                    );
                     return (
-                      <div key={index} className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                      <div
+                        className="flex items-center justify-between rounded-lg bg-muted p-3"
+                        key={index}
+                      >
                         <div>
-                          <h4 className="font-medium">{exerciseDetails?.name || exercise.exerciseId}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {exercise.targetReps.join(' / ')} reps @ {exercise.startingWeight} lbs
+                          <h4 className="font-medium">
+                            {exerciseDetails?.name || exercise.exerciseId}
+                          </h4>
+                          <p className="text-muted-foreground text-sm">
+                            {exercise.targetReps.join(' / ')} reps @{' '}
+                            {exercise.startingWeight} lbs
                           </p>
                         </div>
                       </div>
@@ -121,15 +139,23 @@ export function PlanViewer() {
               </div>
             ))}
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Button onClick={startWorkout} className="w-full">
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <Button className="w-full" onClick={startWorkout}>
               Start Workout Session
             </Button>
-            <Button onClick={() => router.push('/history')} className="w-full" variant="outline">
+            <Button
+              className="w-full"
+              onClick={() => router.push('/history')}
+              variant="outline"
+            >
               View History
             </Button>
-            <Button onClick={() => router.push('/workout/missing')} className="w-full" variant="outline">
+            <Button
+              className="w-full"
+              onClick={() => router.push('/workout/missing')}
+              variant="outline"
+            >
               Missing Sessions
             </Button>
           </div>

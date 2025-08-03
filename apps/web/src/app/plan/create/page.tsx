@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { PlanBuilder } from "@/components/plan-builder";
+import { PlanBuilder } from '@/components/plan-builder';
 
 export default function PlanCreatePage() {
   return (

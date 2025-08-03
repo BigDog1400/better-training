@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { MissingSessions } from "@/components/missing-sessions";
+import { MissingSessions } from '@/components/missing-sessions';
 
 export default function MissingSessionsPage() {
   return (

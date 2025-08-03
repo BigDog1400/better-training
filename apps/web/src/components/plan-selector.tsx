@@ -1,11 +1,21 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { loadAvailablePlans, loadAppData, saveAppData } from "@/lib/localStorage";
-import type { WorkoutPlan } from "@/lib/localStorage";
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import type { WorkoutPlan } from '@/lib/localStorage';
+import {
+  loadAppData,
+  loadAvailablePlans,
+  saveAppData,
+} from '@/lib/localStorage';
 
 export function PlanSelector() {
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
@@ -21,7 +31,7 @@ export function PlanSelector() {
       const availablePlans = await loadAvailablePlans();
       setPlans(availablePlans);
     } catch (error) {
-      console.error("Error loading plans:", error);
+      console.error('Error loading plans:', error);
     } finally {
       setLoading(false);
     }
@@ -32,27 +42,27 @@ export function PlanSelector() {
     appData.currentPlanId = planId;
     appData.planStartedAt = new Date().toISOString();
     saveAppData(appData);
-    router.push("/plan/current");
+    router.push('/plan/current');
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+      <div className="flex h-32 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-gray-900 border-b-2 dark:border-gray-100" />
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Select a Training Plan</h2>
+      <h2 className="font-bold text-2xl">Select a Training Plan</h2>
       <p className="text-muted-foreground">
         Choose from pre-built plans or create your own custom plan.
       </p>
-      
+
       <div className="grid gap-4 md:grid-cols-2">
         {plans.map((plan) => (
-          <Card key={plan.id} className="hover:shadow-md transition-shadow">
+          <Card className="transition-shadow hover:shadow-md" key={plan.id}>
             <CardHeader>
               <CardTitle>{plan.name}</CardTitle>
               <CardDescription>
@@ -60,22 +70,23 @@ export function PlanSelector() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Workout days: {Object.entries(plan.dayWorkouts).map(([day, workout]) => 
-                  `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][parseInt(day)]}: ${workout}`
-                ).join(', ')}
+              <p className="text-muted-foreground text-sm">
+                Workout days:{' '}
+                {Object.entries(plan.dayWorkouts)
+                  .map(
+                    ([day, workout]) =>
+                      `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][Number.parseInt(day)]}: ${workout}`
+                  )
+                  .join(', ')}
               </p>
-              <Button 
-                onClick={() => selectPlan(plan.id)}
-                className="w-full"
-              >
+              <Button className="w-full" onClick={() => selectPlan(plan.id)}>
                 Select Plan
               </Button>
             </CardContent>
           </Card>
         ))}
-        
-        <Card className="hover:shadow-md transition-shadow">
+
+        <Card className="transition-shadow hover:shadow-md">
           <CardHeader>
             <CardTitle>Custom Plan</CardTitle>
             <CardDescription>
@@ -83,10 +94,10 @@ export function PlanSelector() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              onClick={() => router.push("/plan/create")}
-              variant="outline"
+            <Button
               className="w-full"
+              onClick={() => router.push('/plan/create')}
+              variant="outline"
             >
               Create New Plan
             </Button>

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { ProgressCharts } from "@/components/progress-charts";
+import { ProgressCharts } from '@/components/progress-charts';
 
 export default function ProgressPage() {
   return (
