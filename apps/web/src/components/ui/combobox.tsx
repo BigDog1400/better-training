@@ -22,6 +22,8 @@ interface Props<T extends object> {
     disabled?: boolean;
     size?: number;
     renderText: (value: T) => string;
+    // Optional custom option renderer for richer list items (e.g., preview GIFs)
+    renderOption?: (value: T) => React.ReactNode;
     onChange?: (value: T) => void;
     searchFn: (search: string, offset: number, size: number) => Promise<T[]>;
     debounce?: number;
@@ -33,9 +35,10 @@ const ComboBox = <T extends object>({
     disabled = false,
     size = 25,
     renderText,
+    renderOption,
     onChange,
     searchFn,
-            debounce = 500,
+    debounce = 500,
 }: Props<T>) => {
     const [search, setSearch] = useState<string>("");
     const [options, setOptions] = useState<T[]>([]);
@@ -116,13 +119,14 @@ const ComboBox = <T extends object>({
                                             <Check
                                                 className={cn(
                                                     "mr-2 h-4 w-4",
-                                                    option[valueKey] ===
-                                                        value?.[valueKey]
+                                                    option[valueKey] === value?.[valueKey]
                                                         ? "opacity-100"
                                                         : "opacity-0",
                                                 )}
                                             />
-                                            {renderText(option)}
+                                            <div className="min-w-0 flex-1">
+                                                {renderOption ? renderOption(option) : renderText(option)}
+                                            </div>
                                         </CommandItem>
                                     ))}
                                 </div>
