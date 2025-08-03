@@ -105,7 +105,12 @@ export function ExerciseSelector({ onSelect, keepOpen = true, selectedIds = [] }
         </div>
       }
       // Render the selected value text
-      renderText={(exercise) => exercise.name}
+      renderText={(exercise) =>
+        exercise.name
+          .split(" ")
+          .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ""))
+          .join(" ")
+      }
       // Render each item with a small preview and "Added" indicator if already in the day
       renderOption={(exercise: Exercise) => {
         const isAdded = selectedIds.includes(exercise.exerciseId);
@@ -122,7 +127,10 @@ export function ExerciseSelector({ onSelect, keepOpen = true, selectedIds = [] }
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <div className="truncate text-sm font-medium text-foreground">
-                  {exercise.name}
+                  {exercise.name
+                    .split(" ")
+                    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : ""))
+                    .join(" ")}
                 </div>
                 {isAdded && (
                   <span
