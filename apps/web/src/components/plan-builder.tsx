@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Copy, ArrowDownAZ } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,10 @@ export function PlanBuilder() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [planName, setPlanName] = useState('');
   const [durationWeeks, setDurationWeeks] = useState(12);
+  // Mobile speed helpers
+  const [defaultSets, setDefaultSets] = useState(3);
+  const [defaultReps, setDefaultReps] = useState(12);
+  const [defaultWeight, setDefaultWeight] = useState(50);
   const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>([
     { day: 1, workoutName: 'Mon Workout', exercises: [] },
     { day: 2, workoutName: 'Tue Workout', exercises: [] },
@@ -81,9 +85,9 @@ export function PlanBuilder() {
                   ...workoutDay.exercises,
                   {
                     ...exercise,
-                    targetReps: [12, 12, 12],
-                    startingWeight: 50,
-                    sets: 3,
+                    targetReps: Array(defaultSets).fill(defaultReps),
+                    startingWeight: defaultWeight,
+                    sets: defaultSets,
                   },
                 ],
               }
@@ -275,6 +279,49 @@ export function PlanBuilder() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Quick presets for mobile: defaults that apply to newly added exercises */}
+          <div className="rounded-lg border p-3">
+            <div className="mb-2 text-xs font-medium text-foreground">Defaults for new exercises</div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="mb-1 block text-xs" htmlFor="defSets">Sets</Label>
+                <Input
+                  id="defSets"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  className="h-10"
+                  value={defaultSets}
+                  onChange={(e) => setDefaultSets(Number.parseInt(e.target.value) || 1)}
+                />
+              </div>
+              <div>
+                <Label className="mb-1 block text-xs" htmlFor="defReps">Reps</Label>
+                <Input
+                  id="defReps"
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  className="h-10"
+                  value={defaultReps}
+                  onChange={(e) => setDefaultReps(Number.parseInt(e.target.value) || 1)}
+                />
+              </div>
+              <div>
+                <Label className="mb-1 block text-xs" htmlFor="defWeight">Weight (lb)</Label>
+                <Input
+                  id="defWeight"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  className="h-10"
+                  value={defaultWeight}
+                  onChange={(e) => setDefaultWeight(Number.parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+            <div className="mt-1 text-[11px] text-muted-foreground">These values are used when you tap to add an exercise.</div>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="planName">Plan Name</Label>
             <Input
@@ -364,7 +411,7 @@ export function PlanBuilder() {
           <div className="space-y-6">
             {workoutDays.map((workoutDay, dayIndex) => (
               <div
-                className="space-y-4 rounded-lg border bg-muted/50 p-4"
+                className="space-y-4 rounded-lg border bg-card p-4 shadow-sm"
                 key={dayIndex}
               >
                 <div className="flex items-center gap-2">
@@ -380,12 +427,29 @@ export function PlanBuilder() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Add Exercise</Label>
+                  <Label className="text-foreground">Add Exercise</Label>
                   <ExerciseSelector
                     onSelect={(exercise) =>
                       addExerciseToWorkoutDay(dayIndex, exercise)
                     }
                   />
+                  {/* Quick chips common actions */}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {dayIndex > 0 && workoutDays[dayIndex - 1]?.exercises.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs"
+                        onClick={() => copyExercisesToWorkoutDay(dayIndex - 1, dayIndex)}
+                      >
+                        <Copy className="mr-1 h-3 w-3" />
+                        Copy from previous day
+                      </Button>
+                    )}
+                    <span className="text-[11px] text-muted-foreground">
+                      New exercises use your Defaults (Sets/Reps/Weight) above.
+                    </span>
+                  </div>
                 </div>
 
                 {workoutDays.length > 1 && (
@@ -412,88 +476,79 @@ export function PlanBuilder() {
 
                 {workoutDay.exercises.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="font-medium text-sm">Added Exercises</h4>
-                    <div className="max-h-60 space-y-2 overflow-y-auto">
-                      {workoutDay.exercises.map((exercise) => (
+                    <h4 className="text-foreground font-medium text-sm">Added Exercises</h4>
+                    <div className="space-y-2">
+                      {workoutDay.exercises.map((exercise, index) => (
                         <div
-                          className="flex items-center gap-3 rounded border bg-background p-2"
-                          key={exercise.exerciseId}
+                          className="flex items-center gap-3 rounded-lg border bg-background p-3 shadow-sm"
+                          key={exercise.exerciseId + index}
                         >
                           <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium text-sm">
+                            <p className="truncate text-foreground font-medium text-sm">
                               {exercise.name}
                             </p>
                             <p className="truncate text-muted-foreground text-xs">
                               {exercise.equipments.join(', ')} • {exercise.targetMuscles.join(', ')}
                             </p>
+                            {/* Mini quick row to adjust all sets to same reps quickly */}
+                            <div className="mt-2 grid grid-cols-3 gap-2">
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  className="h-8 w-20 text-xs bg-card border-foreground/20"
+                                  min="1"
+                                  type="number"
+                                  value={exercise.sets}
+                                  onChange={(e) =>
+                                    updateExerciseTarget(
+                                      dayIndex,
+                                      exercise.exerciseId,
+                                      'sets',
+                                      Number.parseInt(e.target.value) || 1
+                                    )
+                                  }
+                                />
+                                <span className="text-foreground/80 text-xs">sets</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  className="h-8 w-20 text-xs bg-card border-foreground/20"
+                                  min="1"
+                                  type="number"
+                                  value={exercise.targetReps[0] || 12}
+                                  onChange={(e) =>
+                                    updateExerciseTarget(
+                                      dayIndex,
+                                      exercise.exerciseId,
+                                      'targetReps',
+                                      Number.parseInt(e.target.value) || 1
+                                    )
+                                  }
+                                />
+                                <span className="text-foreground/80 text-xs">reps</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  className="h-8 w-20 text-xs bg-card border-foreground/20"
+                                  min="0"
+                                  type="number"
+                                  value={exercise.startingWeight}
+                                  onChange={(e) =>
+                                    updateExerciseTarget(
+                                      dayIndex,
+                                      exercise.exerciseId,
+                                      'startingWeight',
+                                      Number.parseInt(e.target.value) || 0
+                                    )
+                                  }
+                                />
+                                <span className="text-foreground/80 text-xs">lb</span>
+                              </div>
+                            </div>
                           </div>
 
                           <div className="flex flex-shrink-0 items-center gap-2">
-                            <div className="flex items-center gap-1">
-                              <Input
-                                className="h-8 w-20 text-xs"
-                                min="1"
-                                onChange={(e) =>
-                                  updateExerciseTarget(
-                                    dayIndex,
-                                    exercise.exerciseId,
-                                    'sets',
-                                    Number.parseInt(e.target.value) || 3
-                                  )
-                                }
-                                placeholder="Sets"
-                                type="number"
-                                value={exercise.sets}
-                              />
-                              <span className="text-muted-foreground text-xs">
-                                sets
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-1">
-                              <Input
-                                className="h-8 w-20 text-xs"
-                                min="1"
-                                onChange={(e) =>
-                                  updateExerciseTarget(
-                                    dayIndex,
-                                    exercise.exerciseId,
-                                    'targetReps',
-                                    Number.parseInt(e.target.value) || 12
-                                  )
-                                }
-                                placeholder="Reps"
-                                type="number"
-                                value={exercise.targetReps[0] || 12}
-                              />
-                              <span className="text-muted-foreground text-xs">
-                                reps
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-1">
-                              <Input
-                                className="h-8 w-20 text-xs"
-                                min="1"
-                                onChange={(e) =>
-                                  updateExerciseTarget(
-                                    dayIndex,
-                                    exercise.exerciseId,
-                                    'startingWeight',
-                                    Number.parseInt(e.target.value) || 50
-                                  )
-                                }
-                                placeholder="Weight"
-                                type="number"
-                                value={exercise.startingWeight}
-                              />
-                              <span className="text-muted-foreground text-xs">
-                                lbs
-                              </span>
-                            </div>
-
                             <Button
-                              className="h-8 w-8"
+                              className="h-8 w-8 text-foreground"
                               onClick={() =>
                                 removeExerciseFromWorkoutDay(
                                   dayIndex,
@@ -515,7 +570,7 @@ export function PlanBuilder() {
             ))}
           </div>
 
-          <Button className="w-full" onClick={savePlan}>
+            <Button className="w-full" onClick={savePlan}>
             Save Plan
           </Button>
         </CardContent>
