@@ -416,6 +416,22 @@ export function WorkoutSession() {
                 {currentExercise?.targetReps?.join(' / ')} reps
               </div>
             </div>
+            {/* Exercise animation (if available) */}
+            <div className="mt-3">
+              {/* We assume each media is named by the exerciseId with .gif extension under /public/media */}
+              <div className="flex justify-center">
+                {/* Render at native or small size to avoid pixelation for 180x180 sources */}
+                <img
+                  src={`/media/${currentExercise?.exerciseId}.gif`}
+                  alt={`${currentExerciseData.name} demonstration`}
+                  className="h-24 w-24 rounded-md border object-contain"
+                  onError={(e) => {
+                    // Hide media if the gif is missing
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <Accordion type="single" collapsible className="w-full">
