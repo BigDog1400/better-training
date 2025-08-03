@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { TITLE_TEXT } from '@/lib/constants';
 import { loadAppData } from '@/lib/localStorage';
 
 export default function Home() {
@@ -18,9 +17,6 @@ export default function Home() {
     <div className="flex min-h-[calc(100svh-56px)] items-center justify-center">
       <div className="mx-auto w-full max-w-[480px] px-4 py-8 text-center">
         <div className="space-y-6">
-          <pre className="overflow-x-auto font-mono text-xs sm:text-sm leading-tight text-muted-foreground">
-            {TITLE_TEXT}
-          </pre>
 
           <div className="space-y-2">
             <h1 className="font-bold text-2xl sm:text-3xl">Better Training</h1>
