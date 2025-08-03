@@ -1,10 +1,13 @@
 // Types for our application
 export interface Exercise {
-  id: string;
+  exerciseId: string;
   name: string;
-  machine: string;
-  muscle: string;
-  instructions: string;
+  gifUrl: string;
+  equipments: string[];
+  bodyParts: string[];
+  targetMuscles: string[];
+  secondaryMuscles: string[];
+  instructions: string[];
 }
 
 export interface WorkoutExercise {
@@ -55,20 +58,6 @@ export interface AppData {
 }
 
 const STORAGE_KEY = 'betterTrainingData';
-
-// Load exercises from public/data/exercises.json
-export async function loadExercises(): Promise<Exercise[]> {
-  try {
-    const response = await fetch('/data/exercises.json');
-    if (!response.ok) {
-      throw new Error(`Failed to load exercises: ${response.status}`);
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error loading exercises:', error);
-    return [];
-  }
-}
 
 // Load a specific plan from localStorage
 export async function loadPlan(planId: string): Promise<WorkoutPlan | null> {

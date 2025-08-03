@@ -19,12 +19,12 @@ import {
   type Exercise,
   getSuggestedWeight,
   loadAppData,
-  loadExercises,
   loadPlan,
   saveAppData,
   type WorkoutExercise,
   type WorkoutPlan,
 } from '@/lib/localStorage';
+import { FileLoader } from '@/data/load';
 
 // Helper function to determine the next workout
 const getNextWorkoutType = (
@@ -144,7 +144,7 @@ export function WorkoutSession() {
       }
 
       // Get workout exercises with suggestions
-      const exercisesData = await loadExercises();
+      const exercisesData = await FileLoader.loadExercises();
       setExercises(exercisesData);
 
       // Use the determined workout type
@@ -242,7 +242,7 @@ export function WorkoutSession() {
 
   const currentExercise = workoutExercises[currentExerciseIndex];
   const currentExerciseData = currentExercise
-    ? exercises.find((e) => e.id === currentExercise.exerciseId)
+    ? exercises.find((e) => e.exerciseId === currentExercise.exerciseId)
     : null;
   const currentLog = logs[currentExerciseIndex];
 
@@ -287,7 +287,7 @@ export function WorkoutSession() {
                     key={index}
                   >
                     <h4 className="font-medium">
-                      {exercises.find((e) => e.id === exercise.exerciseId)
+                      {exercises.find((e) => e.exerciseId === exercise.exerciseId)
                         ?.name || exercise.exerciseId}
                     </h4>
                     <p className="text-muted-foreground text-sm">
@@ -334,12 +334,12 @@ export function WorkoutSession() {
         <Card>
           <CardHeader>
             <CardTitle>{currentExerciseData.name}</CardTitle>
-            <CardDescription>{currentExerciseData.machine}</CardDescription>
+            <CardDescription>{currentExerciseData.equipments.join(', ')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <p className="text-muted-foreground text-sm">
-                {currentExerciseData.instructions}
+                {currentExerciseData.instructions.join('\n')}
               </p>
             </div>
 

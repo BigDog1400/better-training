@@ -13,10 +13,10 @@ import {
 import {
   type Exercise,
   loadAppData,
-  loadExercises,
   loadPlan,
   type WorkoutPlan,
 } from '@/lib/localStorage';
+import { FileLoader } from '@/data/load';
 
 export function PlanViewer() {
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
@@ -47,7 +47,7 @@ export function PlanViewer() {
       setPlan(planData);
 
       // Load exercises
-      const exercisesData = await loadExercises();
+      const exercisesData = await FileLoader.loadExercises();
       setExercises(exercisesData);
     } catch (error) {
       console.error('Error loading plan data:', error);
@@ -57,7 +57,7 @@ export function PlanViewer() {
   };
 
   const getExerciseDetails = (exerciseId: string) => {
-    return exercises.find((e) => e.id === exerciseId) || null;
+    return exercises.find((e) => e.exerciseId === exerciseId) || null;
   };
 
   const startWorkout = () => {

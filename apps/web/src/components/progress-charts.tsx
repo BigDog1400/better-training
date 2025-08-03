@@ -21,7 +21,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
-import { type Exercise, loadAppData, loadExercises } from '@/lib/localStorage';
+import { type Exercise, loadAppData } from '@/lib/localStorage';
+import { FileLoader } from '@/data/load';
 
 export function ProgressCharts() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -36,7 +37,7 @@ export function ProgressCharts() {
   const loadLogs = async () => {
     try {
       const appData = loadAppData();
-      const exercisesData = await loadExercises();
+      const exercisesData = await FileLoader.loadExercises();
       setExercises(exercisesData);
 
       // Sort logs by date (oldest first for charting)
@@ -58,7 +59,7 @@ export function ProgressCharts() {
   };
 
   const getExerciseName = (exerciseId: string) => {
-    const exercise = exercises.find((e) => e.id === exerciseId);
+    const exercise = exercises.find((e) => e.exerciseId === exerciseId);
     return exercise ? exercise.name : exerciseId;
   };
 

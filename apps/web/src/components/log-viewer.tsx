@@ -9,7 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { type Exercise, loadAppData, loadExercises } from '@/lib/localStorage';
+import { type Exercise, loadAppData } from '@/lib/localStorage';
+import { FileLoader } from '@/data/load';
 
 interface LogViewerProps {
   limit?: number; // Show only the last N sessions
@@ -17,7 +18,7 @@ interface LogViewerProps {
 
 function exportToCSV(logs: any[], exercises: Exercise[]) {
   // Create a map of exercise IDs to names for quick lookup
-  const exerciseMap = new Map(exercises.map((ex) => [ex.id, ex.name]));
+  const exerciseMap = new Map(exercises.map((ex) => [ex.exerciseId, ex.name]));
 
   // CSV header
   const headers = [
@@ -84,7 +85,7 @@ export function LogViewer({ limit }: LogViewerProps) {
   const loadLogs = async () => {
     try {
       const appData = loadAppData();
-      const exercisesData = await loadExercises();
+      const exercisesData = await FileLoader.loadExercises();
       setExercises(exercisesData);
 
       // Sort logs by date (newest first)
@@ -103,7 +104,7 @@ export function LogViewer({ limit }: LogViewerProps) {
   };
 
   const getExerciseName = (exerciseId: string) => {
-    const exercise = exercises.find((e) => e.id === exerciseId);
+    const exercise = exercises.find((e) => e.exerciseId === exerciseId);
     return exercise ? exercise.name : exerciseId;
   };
 

@@ -23,9 +23,9 @@ import {
 import {
   type Exercise,
   loadAppData,
-  loadExercises,
   saveAppData,
 } from '@/lib/localStorage';
+import { FileLoader } from '@/data/load';
 
 interface PlanExercise extends Exercise {
   targetReps: number[];
@@ -60,7 +60,7 @@ export function PlanBuilder() {
 
   const loadExercisesData = async () => {
     try {
-      const exerciseData = await loadExercises();
+      const exerciseData = await FileLoader.loadExercises();
       setExercises(exerciseData);
     } catch (error) {
       console.error('Error loading exercises:', error);
@@ -70,7 +70,7 @@ export function PlanBuilder() {
   };
 
   const addExerciseToWorkoutDay = (dayIndex: number, exerciseId: string) => {
-    const exercise = exercises.find((e) => e.id === exerciseId);
+    const exercise = exercises.find((e) => e.exerciseId === exerciseId);
     if (exercise) {
       setWorkoutDays(
         workoutDays.map((workoutDay, index) =>
@@ -103,7 +103,7 @@ export function PlanBuilder() {
           ? {
               ...workoutDay,
               exercises: workoutDay.exercises.filter(
-                (e) => e.id !== exerciseId
+                (e) => e.exerciseId !== exerciseId
               ),
             }
           : workoutDay
@@ -142,7 +142,7 @@ export function PlanBuilder() {
           ? {
               ...workoutDay,
               exercises: workoutDay.exercises.map((exercise) =>
-                exercise.id === exerciseId
+                exercise.exerciseId === exerciseId
                   ? {
                       ...exercise,
                       [field]:
@@ -187,7 +187,7 @@ export function PlanBuilder() {
       // Add exercises to workout
       workoutDay.exercises.forEach((exercise) => {
         workouts[workoutDay.workoutName].push({
-          exerciseId: exercise.id,
+          exerciseId: exercise.exerciseId,
           targetReps: exercise.targetReps,
           startingWeight: exercise.startingWeight,
           sets: exercise.sets,
@@ -395,11 +395,11 @@ export function PlanBuilder() {
                       {exercises
                         .filter(
                           (e) =>
-                            !workoutDay.exercises.some((pe) => pe.id === e.id)
+                            !workoutDay.exercises.some((pe) => pe.exerciseId === e.exerciseId)
                         )
                         .map((exercise) => (
-                          <SelectItem key={exercise.id} value={exercise.id}>
-                            {exercise.name} ({exercise.muscle})
+                          <SelectItem key={exercise.exerciseId} value={exercise.exerciseId}>
+                            {exercise.name} ({exercise.targetMuscles.join(', ')})
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -435,14 +435,14 @@ export function PlanBuilder() {
                       {workoutDay.exercises.map((exercise) => (
                         <div
                           className="flex items-center gap-3 rounded border bg-background p-2"
-                          key={exercise.id}
+                          key={exercise.exerciseId}
                         >
                           <div className="min-w-0 flex-1">
                             <p className="truncate font-medium text-sm">
                               {exercise.name}
                             </p>
                             <p className="truncate text-muted-foreground text-xs">
-                              {exercise.machine} • {exercise.muscle}
+                              {exercise.equipments.join(', ')} • {exercise.targetMuscles.join(', ')}
                             </p>
                           </div>
 
@@ -454,7 +454,7 @@ export function PlanBuilder() {
                                 onChange={(e) =>
                                   updateExerciseTarget(
                                     dayIndex,
-                                    exercise.id,
+                                    exercise.exerciseId,
                                     'sets',
                                     Number.parseInt(e.target.value) || 3
                                   )
@@ -475,7 +475,7 @@ export function PlanBuilder() {
                                 onChange={(e) =>
                                   updateExerciseTarget(
                                     dayIndex,
-                                    exercise.id,
+                                    exercise.exerciseId,
                                     'targetReps',
                                     Number.parseInt(e.target.value) || 12
                                   )
@@ -496,7 +496,7 @@ export function PlanBuilder() {
                                 onChange={(e) =>
                                   updateExerciseTarget(
                                     dayIndex,
-                                    exercise.id,
+                                    exercise.exerciseId,
                                     'startingWeight',
                                     Number.parseInt(e.target.value) || 50
                                   )
@@ -515,7 +515,7 @@ export function PlanBuilder() {
                               onClick={() =>
                                 removeExerciseFromWorkoutDay(
                                   dayIndex,
-                                  exercise.id
+                                  exercise.exerciseId
                                 )
                               }
                               size="icon"
