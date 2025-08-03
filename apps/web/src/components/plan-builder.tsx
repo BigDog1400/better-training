@@ -432,6 +432,7 @@ export function PlanBuilder() {
                     onSelect={(exercise) =>
                       addExerciseToWorkoutDay(dayIndex, exercise)
                     }
+                    selectedIds={workoutDay.exercises.map((e) => e.exerciseId)}
                   />
                   {/* Quick chips common actions */}
                   <div className="mt-2 flex flex-wrap gap-2">

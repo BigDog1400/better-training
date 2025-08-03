@@ -10,7 +10,6 @@ import {
     CommandItem,
     CommandList,
 } from "./command";
-import { PopoverClose } from "@radix-ui/react-popover";
 import { useCallback, useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 
@@ -27,6 +26,8 @@ interface Props<T extends object> {
     onChange?: (value: T) => void;
     searchFn: (search: string, offset: number, size: number) => Promise<T[]>;
     debounce?: number;
+    // Keep popover open when selecting an item (for rapid multi-add flows)
+    keepOpen?: boolean;
 }
 const ComboBox = <T extends object>({
     title,
@@ -39,6 +40,7 @@ const ComboBox = <T extends object>({
     onChange,
     searchFn,
     debounce = 500,
+    keepOpen = false,
 }: Props<T>) => {
     const [search, setSearch] = useState<string>("");
     const [options, setOptions] = useState<T[]>([]);
@@ -82,7 +84,7 @@ const ComboBox = <T extends object>({
     }, [getOptions]);
 
     return (
-        <Popover modal={true}>
+        <Popover modal={true} open={undefined}>
             <PopoverTrigger asChild>
                 <Button
                     variant="outline"
@@ -108,29 +110,32 @@ const ComboBox = <T extends object>({
                     <CommandList>
                         <CommandEmpty>No item found.</CommandEmpty>
                         <CommandGroup className="max-h-60 overflow-y-auto">
-                            <PopoverClose asChild>
-                                <div>
-                                    {options.map((option) => (
-                                        <CommandItem
-                                            value={option[valueKey] as string}
-                                            key={option[valueKey] as string}
-                                            onSelect={() => onChange?.(option)}
-                                        >
-                                            <Check
-                                                className={cn(
-                                                    "mr-2 h-4 w-4",
-                                                    option[valueKey] === value?.[valueKey]
-                                                        ? "opacity-100"
-                                                        : "opacity-0",
-                                                )}
-                                            />
-                                            <div className="min-w-0 flex-1">
-                                                {renderOption ? renderOption(option) : renderText(option)}
-                                            </div>
-                                        </CommandItem>
-                                    ))}
-                                </div>
-                            </PopoverClose>
+                            <div>
+                                {options.map((option) => (
+                                    <CommandItem
+                                        value={option[valueKey] as string}
+                                        key={option[valueKey] as string}
+                                        onSelect={(_value) => {
+                                            // Radix Command onSelect provides the selected value (string),
+                                            // not a DOM event. We keep the popover open using keepOpen by
+                                            // not relying on PopoverClose wrapper and simply calling onChange.
+                                            onChange?.(option);
+                                        }}
+                                    >
+                                        <Check
+                                            className={cn(
+                                                "mr-2 h-4 w-4",
+                                                option[valueKey] === value?.[valueKey]
+                                                    ? "opacity-100"
+                                                    : "opacity-0",
+                                            )}
+                                        />
+                                        <div className="min-w-0 flex-1">
+                                            {renderOption ? renderOption(option) : renderText(option)}
+                                        </div>
+                                    </CommandItem>
+                                ))}
+                            </div>
                             <CommandItem asChild>
                                 {canLoadMore && (
                                     <Button
