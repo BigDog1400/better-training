@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2, Copy, ArrowDownAZ } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { FormattedMessage } from 'react-intl';
 import { useFieldArray, useForm, type FieldArrayWithId } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -211,7 +212,12 @@ export function PlanBuilder() {
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      <h2 className="font-bold text-2xl">Create Custom Plan</h2>
+      <h2 className="font-bold text-2xl">
+        <FormattedMessage
+          id="planBuilder.title"
+          defaultMessage="Create Custom Plan"
+        />
+      </h2>
 
       <Card>
         <CardHeader>
