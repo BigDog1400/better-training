@@ -1,8 +1,11 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2, Copy, ArrowDownAZ } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useFieldArray, useForm, type FieldArrayWithId } from 'react-hook-form';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -28,36 +31,62 @@ import {
 import { FileLoader } from '@/data/load';
 import { ExerciseSelector } from './exercise-selector';
 
-interface PlanExercise extends Exercise {
-  targetReps: number[];
-  startingWeight: number;
-  sets: number;
-}
+// Zod Schemas for form validation
+const planExerciseSchema = z.object({
+  exerciseId: z.string(),
+  name: z.string(),
+  targetMuscles: z.array(z.string()),
+  equipments: z.array(z.string()),
+  targetReps: z.array(z.number().min(1)),
+  startingWeight: z.number().min(0),
+  sets: z.number().min(1),
+});
 
-interface WorkoutDay {
-  day: number;
-  workoutName: string;
-  exercises: PlanExercise[];
-}
+const workoutDaySchema = z.object({
+  day: z.number().min(0).max(6),
+  workoutName: z.string().min(1, 'Workout name is required'),
+  exercises: z.array(planExerciseSchema),
+});
+
+const planBuilderSchema = z.object({
+  planName: z.string().min(1, 'Plan name is required'),
+  durationWeeks: z.number().min(1).max(52),
+  workoutDays: z.array(workoutDaySchema).min(1, 'At least one workout day is required'),
+});
+
+type PlanBuilderFormValues = z.infer<typeof planBuilderSchema>;
+type PlanExercise = z.infer<typeof planExerciseSchema>;
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function PlanBuilder() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [planName, setPlanName] = useState('');
-  const [durationWeeks, setDurationWeeks] = useState(12);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  const form = useForm<PlanBuilderFormValues>({
+    resolver: zodResolver(planBuilderSchema),
+    defaultValues: {
+      planName: '',
+      durationWeeks: 12,
+      workoutDays: [
+        { day: 1, workoutName: 'Mon Workout', exercises: [] },
+        { day: 2, workoutName: 'Tue Workout', exercises: [] },
+        { day: 4, workoutName: 'Thu Workout', exercises: [] },
+        { day: 5, workoutName: 'Fri Workout', exercises: [] },
+      ],
+    },
+  });
+
+  const { fields: workoutDays, append, remove, update } = useFieldArray({
+    control: form.control,
+    name: 'workoutDays',
+  });
+
   // Mobile speed helpers
   const [defaultSets, setDefaultSets] = useState(3);
   const [defaultReps, setDefaultReps] = useState(12);
   const [defaultWeight, setDefaultWeight] = useState(50);
-  const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>([
-    { day: 1, workoutName: 'Mon Workout', exercises: [] },
-    { day: 2, workoutName: 'Tue Workout', exercises: [] },
-    { day: 4, workoutName: 'Thu Workout', exercises: [] },
-    { day: 5, workoutName: 'Fri Workout', exercises: [] },
-  ]);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     loadExercisesData();
@@ -76,154 +105,46 @@ export function PlanBuilder() {
 
   const addExerciseToWorkoutDay = (dayIndex: number, exercise: Exercise) => {
     if (exercise) {
-      setWorkoutDays(
-        workoutDays.map((workoutDay, index) =>
-          index === dayIndex
-            ? {
-                ...workoutDay,
-                exercises: [
-                  ...workoutDay.exercises,
-                  {
-                    ...exercise,
-                    targetReps: Array(defaultSets).fill(defaultReps),
-                    startingWeight: defaultWeight,
-                    sets: defaultSets,
-                  },
-                ],
-              }
-            : workoutDay
-        )
-      );
+      const workoutDay = form.getValues(`workoutDays.${dayIndex}`);
+      const newExercise: PlanExercise = {
+        ...exercise,
+        targetReps: Array(defaultSets).fill(defaultReps),
+        startingWeight: defaultWeight,
+        sets: defaultSets,
+      };
+      update(dayIndex, {
+        ...workoutDay,
+        exercises: [...workoutDay.exercises, newExercise],
+      });
     }
   };
 
-  const removeExerciseFromWorkoutDay = (
-    dayIndex: number,
-    exerciseId: string
-  ) => {
-    setWorkoutDays(
-      workoutDays.map((workoutDay, index) =>
-        index === dayIndex
-          ? {
-              ...workoutDay,
-              exercises: workoutDay.exercises.filter(
-                (e) => e.exerciseId !== exerciseId
-              ),
-            }
-          : workoutDay
-      )
-    );
-  };
 
   const copyExercisesToWorkoutDay = (
     sourceDayIndex: number,
     targetDayIndex: number
   ) => {
-    const sourceExercises = workoutDays[sourceDayIndex].exercises;
-    setWorkoutDays(
-      workoutDays.map((workoutDay, index) =>
-        index === targetDayIndex
-          ? {
-              ...workoutDay,
-              exercises: sourceExercises.map((exercise) => ({
-                ...exercise,
-              })),
-            }
-          : workoutDay
-      )
-    );
+    const sourceExercises = form.getValues(`workoutDays.${sourceDayIndex}.exercises`);
+    const targetWorkoutDay = form.getValues(`workoutDays.${targetDayIndex}`);
+    update(targetDayIndex, {
+      ...targetWorkoutDay,
+      exercises: sourceExercises.map((exercise) => ({ ...exercise })),
+    });
   };
 
-  // Robust update that supports intermediate empty/partial values while typing
-  const updateExerciseTarget = (
-    dayIndex: number,
-    exerciseId: string,
-    field: 'targetReps' | 'startingWeight' | 'sets',
-    value: number | ''
-  ) => {
-    setWorkoutDays((prev) =>
-      prev.map((workoutDay, index) =>
-        index === dayIndex
-          ? {
-              ...workoutDay,
-              exercises: workoutDay.exercises.map((exercise) => {
-                if (exercise.exerciseId !== exerciseId) return exercise;
-
-                // Allow empty string while typing (e.g., deleting 1 before typing 2)
-                if (value === '') {
-                  if (field === 'targetReps') {
-                    // Temporarily set first rep to empty; preserve array length
-                    const reps = [...exercise.targetReps];
-                    // Use NaN sentinel via Number('') if needed, but here keep previous and rely on input display
-                    reps[0] = Number.NaN as unknown as number;
-                    return { ...exercise, targetReps: reps };
-                  }
-                  if (field === 'startingWeight') {
-                    return { ...exercise, startingWeight: Number.NaN as unknown as number };
-                  }
-                  if (field === 'sets') {
-                    return { ...exercise, sets: Number.NaN as unknown as number };
-                  }
-                }
-
-                const numeric = typeof value === 'string' ? Number.parseInt(value) : value;
-
-                if (field === 'targetReps') {
-                  const repsCount = Number.isFinite(exercise.sets) ? exercise.sets : 1;
-                  const reps = Array(Math.max(1, repsCount)).fill(
-                    Number.isFinite(numeric as number) ? (numeric as number) : 0
-                  );
-                  return { ...exercise, targetReps: reps };
-                }
-
-                if (field === 'startingWeight') {
-                  const n = Number.isFinite(numeric as number) ? (numeric as number) : 0;
-                  return { ...exercise, startingWeight: n };
-                }
-
-                if (field === 'sets') {
-                  const nSets = Number.isFinite(numeric as number) ? Math.max(1, numeric as number) : 1;
-                  // Resize targetReps to match sets, using existing value or default 12
-                  const baseRep = Number.isFinite(exercise.targetReps[0]) ? exercise.targetReps[0] : 12;
-                  const reps = Array(nSets).fill(baseRep);
-                  return { ...exercise, sets: nSets, targetReps: reps };
-                }
-
-                return exercise;
-              }),
-            }
-          : workoutDay
-      )
-    );
-  };
-
-  const savePlan = () => {
-    if (
-      !planName.trim() ||
-      workoutDays.every((wd) => wd.exercises.length === 0)
-    ) {
-      alert(
-        'Please enter a plan name and add at least one exercise to any workout day'
-      );
-      return;
-    }
-
+  const onSubmit = (data: PlanBuilderFormValues) => {
     // Generate a unique ID for the plan
-    const planId = planName
+    const planId = data.planName
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
 
     // Create the plan structure
     const workouts: { [key: string]: any[] } = {};
-
-    // Build workouts object from workoutDays
-    workoutDays.forEach((workoutDay) => {
+    data.workoutDays.forEach((workoutDay) => {
       if (!workouts[workoutDay.workoutName]) {
         workouts[workoutDay.workoutName] = [];
       }
-
-      // Add exercises to workout
       workoutDay.exercises.forEach((exercise) => {
         workouts[workoutDay.workoutName].push({
           exerciseId: exercise.exerciseId,
@@ -236,9 +157,9 @@ export function PlanBuilder() {
 
     const plan = {
       id: planId,
-      name: planName,
-      durationWeeks,
-      dayWorkouts: workoutDays.reduce(
+      name: data.planName,
+      durationWeeks: data.durationWeeks,
+      dayWorkouts: data.workoutDays.reduce(
         (acc, workoutDay) => {
           acc[workoutDay.day] = workoutDay.workoutName;
           return acc;
@@ -252,8 +173,6 @@ export function PlanBuilder() {
     const appData = loadAppData();
     appData.currentPlanId = planId;
 
-    // Save the plan to a file (in a real app, this would be saved to the filesystem)
-    // For now, we'll just save it in localStorage with a special key
     try {
       localStorage.setItem(
         `betterTrainingPlan_${planId}`,
@@ -267,31 +186,19 @@ export function PlanBuilder() {
     }
   };
 
-  const updateWorkoutDay = (dayIndex: number, workoutName: string) => {
-    setWorkoutDays(
-      workoutDays.map((workoutDay, index) =>
-        index === dayIndex
-          ? { ...workoutDay, workoutName: workoutName.trim() }
-          : workoutDay
-      )
-    );
-  };
-
   const addWorkoutDay = () => {
+    const currentDays = form.getValues('workoutDays').map((wd) => wd.day);
     const availableDays = [0, 1, 2, 3, 4, 5, 6].filter(
-      (day) => !workoutDays.some((wd) => wd.day === day)
+      (day) => !currentDays.includes(day)
     );
 
     if (availableDays.length > 0) {
-      setWorkoutDays([
-        ...workoutDays,
-        { day: availableDays[0], workoutName: 'New Workout', exercises: [] },
-      ]);
+      append({
+        day: availableDays[0],
+        workoutName: 'New Workout',
+        exercises: [],
+      });
     }
-  };
-
-  const removeWorkoutDay = (dayIndex: number) => {
-    setWorkoutDays(workoutDays.filter((_, index) => index !== dayIndex));
   };
 
   if (loading) {
@@ -303,7 +210,7 @@ export function PlanBuilder() {
   }
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
       <h2 className="font-bold text-2xl">Create Custom Plan</h2>
 
       <Card>
@@ -361,10 +268,12 @@ export function PlanBuilder() {
             <Label htmlFor="planName">Plan Name</Label>
             <Input
               id="planName"
-              onChange={(e) => setPlanName(e.target.value)}
               placeholder="e.g., My Custom Plan"
-              value={planName}
+              {...form.register('planName')}
             />
+            {form.formState.errors.planName && (
+              <p className="text-sm text-red-500">{form.formState.errors.planName.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -373,27 +282,23 @@ export function PlanBuilder() {
               id="durationWeeks"
               max="52"
               min="1"
-              onChange={(e) =>
-                setDurationWeeks(Number.parseInt(e.target.value) || 12)
-              }
               type="number"
-              value={durationWeeks}
+              {...form.register('durationWeeks', { valueAsNumber: true })}
             />
+            {form.formState.errors.durationWeeks && (
+              <p className="text-sm text-red-500">{form.formState.errors.durationWeeks.message}</p>
+            )}
           </div>
 
           <div className="space-y-4">
             <Label>Workout Schedule</Label>
             {workoutDays.map((workoutDay, index) => (
-              <div className="flex items-center gap-2" key={index}>
+              <div className="flex items-center gap-2" key={workoutDay.id}>
                 <Select
                   onValueChange={(value) => {
                     const dayIndex = dayNames.indexOf(value);
                     if (dayIndex !== -1) {
-                      setWorkoutDays(
-                        workoutDays.map((wd, i) =>
-                          i === index ? { ...wd, day: dayIndex } : wd
-                        )
-                      );
+                      update(index, { ...workoutDay, day: dayIndex });
                     }
                   }}
                   value={dayNames[workoutDay.day]}
@@ -412,13 +317,12 @@ export function PlanBuilder() {
 
                 <Input
                   className="flex-1"
-                  onChange={(e) => updateWorkoutDay(index, e.target.value)}
                   placeholder="Workout name"
-                  value={workoutDay.workoutName}
+                  {...form.register(`workoutDays.${index}.workoutName`)}
                 />
 
                 <Button
-                  onClick={() => removeWorkoutDay(index)}
+                  onClick={() => remove(index)}
                   size="icon"
                   variant="ghost"
                 >
@@ -426,8 +330,11 @@ export function PlanBuilder() {
                 </Button>
               </div>
             ))}
+             {form.formState.errors.workoutDays && (
+              <p className="text-sm text-red-500">{form.formState.errors.workoutDays.message}</p>
+            )}
 
-            <Button onClick={addWorkoutDay} size="sm" variant="outline">
+            <Button onClick={addWorkoutDay} size="sm" variant="outline" type="button">
               <Plus className="mr-2 h-4 w-4" />
               Add Workout Day
             </Button>
@@ -445,190 +352,176 @@ export function PlanBuilder() {
         <CardContent className="space-y-4">
           <div className="space-y-6">
             {workoutDays.map((workoutDay, dayIndex) => (
-              <div
-                className="space-y-4 rounded-lg border bg-card p-4 shadow-sm"
-                key={dayIndex}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-lg">
-                    {dayNames[workoutDay.day]}:
-                  </span>
-                  <Input
-                    className="h-8 flex-1 font-medium text-lg"
-                    onChange={(e) => updateWorkoutDay(dayIndex, e.target.value)}
-                    type="text"
-                    value={workoutDay.workoutName}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-foreground">Add Exercise</Label>
-                  <ExerciseSelector
-                    onSelect={(exercise) =>
-                      addExerciseToWorkoutDay(dayIndex, exercise)
-                    }
-                    selectedIds={workoutDay.exercises.map((e) => e.exerciseId)}
-                  />
-                  {/* Quick chips common actions */}
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {dayIndex > 0 && workoutDays[dayIndex - 1]?.exercises.length > 0 && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 text-xs"
-                        onClick={() => copyExercisesToWorkoutDay(dayIndex - 1, dayIndex)}
-                      >
-                        <Copy className="mr-1 h-3 w-3" />
-                        Copy from previous day
-                      </Button>
-                    )}
-                    <span className="text-[11px] text-muted-foreground">
-                      New exercises use your Defaults (Sets/Reps/Weight) above.
-                    </span>
-                  </div>
-                </div>
-
-                {workoutDays.length > 1 && (
-                  <div className="flex flex-wrap gap-2">
-                    <Label className="w-full">Copy to Day</Label>
-                    {workoutDays.map(
-                      (targetDay, targetIndex) =>
-                        dayIndex !== targetIndex && (
-                          <Button
-                            className="h-8 text-xs"
-                            key={targetIndex}
-                            onClick={() =>
-                              copyExercisesToWorkoutDay(dayIndex, targetIndex)
-                            }
-                            size="sm"
-                            variant="outline"
-                          >
-                            {dayNames[targetDay.day]}: {targetDay.workoutName}
-                          </Button>
-                        )
-                    )}
-                  </div>
-                )}
-
-                {workoutDay.exercises.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-foreground font-medium text-sm">Added Exercises</h4>
-                    <div className="space-y-2">
-                      {workoutDay.exercises.map((exercise, index) => (
-                        <div
-                          className="flex flex-col gap-3 rounded-lg border bg-background p-3 shadow-sm sm:flex-row sm:items-center"
-                          key={exercise.exerciseId + index}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-foreground font-medium text-sm">
-                              {exercise.name}
-                            </p>
-                            <p className="truncate text-muted-foreground text-xs">
-                              {exercise.equipments.join(', ')} • {exercise.targetMuscles.join(', ')}
-                            </p>
-                            {/* Mini quick row to adjust all sets to same reps quickly */}
-                            <div className="mt-2 grid grid-cols-3 gap-2 sm:items-center">
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  className="h-10 w-20 text-base bg-card border-foreground/20 text-foreground tracking-wide text-center sm:w-24"
-                                  min="1"
-                                  inputMode="numeric"
-                                  type="number"
-                                  value={
-                                    Number.isFinite(exercise.sets as unknown as number)
-                                      ? exercise.sets
-                                      : ''
-                                  }
-                                  onChange={(e) =>
-                                    updateExerciseTarget(
-                                      dayIndex,
-                                      exercise.exerciseId,
-                                      'sets',
-                                      e.target.value === '' ? '' : Number.parseInt(e.target.value)
-                                    )
-                                  }
-                                  style={{ WebkitTextSizeAdjust: '100%' }}
-                                />
-                                <span className="text-foreground/80 text-xs">sets</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  className="h-10 w-24 text-base bg-card border-foreground/20 text-foreground tracking-wide"
-                                  min="1"
-                                  inputMode="numeric"
-                                  type="number"
-                                  value={
-                                    Number.isFinite(exercise.targetReps[0] as unknown as number)
-                                      ? exercise.targetReps[0]
-                                      : ''
-                                  }
-                                  onChange={(e) =>
-                                    updateExerciseTarget(
-                                      dayIndex,
-                                      exercise.exerciseId,
-                                      'targetReps',
-                                      e.target.value === '' ? '' : Number.parseInt(e.target.value)
-                                    )
-                                  }
-                                  style={{ WebkitTextSizeAdjust: '100%' }}
-                                />
-                                <span className="text-foreground/80 text-xs">reps</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Input
-                                  className="h-10 w-24 text-base bg-card border-foreground/20 text-foreground tracking-wide text-center sm:w-28"
-                                  min="0"
-                                  inputMode="decimal"
-                                  type="number"
-                                  value={
-                                    Number.isFinite(exercise.startingWeight as unknown as number)
-                                      ? exercise.startingWeight
-                                      : ''
-                                  }
-                                  onChange={(e) =>
-                                    updateExerciseTarget(
-                                      dayIndex,
-                                      exercise.exerciseId,
-                                      'startingWeight',
-                                      e.target.value === '' ? '' : Number.parseInt(e.target.value)
-                                    )
-                                  }
-                                  style={{ WebkitTextSizeAdjust: '100%' }}
-                                />
-                                <span className="text-foreground/80 text-xs">lb</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-shrink-0 items-center gap-2 self-start sm:self-auto">
-                            <Button
-                              className="h-8 w-8 text-foreground"
-                              onClick={() =>
-                                removeExerciseFromWorkoutDay(
-                                  dayIndex,
-                                  exercise.exerciseId
-                                )
-                              }
-                              size="icon"
-                              variant="ghost"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <WorkoutDayCard
+                key={workoutDay.id}
+                dayIndex={dayIndex}
+                workoutDay={workoutDay}
+                form={form}
+                addExerciseToWorkoutDay={addExerciseToWorkoutDay}
+                copyExercisesToWorkoutDay={copyExercisesToWorkoutDay}
+              />
             ))}
           </div>
 
-            <Button className="w-full" onClick={savePlan}>
+          <Button className="w-full" type="submit">
             Save Plan
           </Button>
         </CardContent>
       </Card>
+    </form>
+  );
+}
+
+import type { UseFormReturn } from 'react-hook-form';
+
+interface WorkoutDayCardProps {
+  dayIndex: number;
+  workoutDay: FieldArrayWithId<PlanBuilderFormValues, "workoutDays", "id">;
+  form: UseFormReturn<PlanBuilderFormValues>;
+  addExerciseToWorkoutDay: (dayIndex: number, exercise: Exercise) => void;
+  copyExercisesToWorkoutDay: (sourceDayIndex: number, targetDayIndex: number) => void;
+}
+
+function WorkoutDayCard({
+  dayIndex,
+  workoutDay,
+  form,
+  addExerciseToWorkoutDay,
+  copyExercisesToWorkoutDay,
+}: WorkoutDayCardProps) {
+  const { fields: exercises, remove: removeExercise } = useFieldArray({
+    control: form.control,
+    name: `workoutDays.${dayIndex}.exercises`,
+  });
+
+  return (
+    <div
+      className="space-y-4 rounded-lg border bg-card p-4 shadow-sm"
+      key={workoutDay.id}
+    >
+      <div className="flex items-center gap-2">
+        <span className="font-medium text-lg">
+          {dayNames[workoutDay.day]}:
+        </span>
+        <Input
+          className="h-8 flex-1 font-medium text-lg"
+          type="text"
+          {...form.register(`workoutDays.${dayIndex}.workoutName`)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-foreground">Add Exercise</Label>
+        <ExerciseSelector
+          onSelect={(exercise) => addExerciseToWorkoutDay(dayIndex, exercise)}
+          selectedIds={exercises.map((e) => e.exerciseId)}
+        />
+        <div className="mt-2 flex flex-wrap gap-2">
+          {dayIndex > 0 && form.getValues(`workoutDays.${dayIndex - 1}.exercises`)?.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs"
+              onClick={() => copyExercisesToWorkoutDay(dayIndex - 1, dayIndex)}
+              type="button"
+            >
+              <Copy className="mr-1 h-3 w-3" />
+              Copy from previous day
+            </Button>
+          )}
+          <span className="text-[11px] text-muted-foreground">
+            New exercises use your Defaults (Sets/Reps/Weight) above.
+          </span>
+        </div>
+      </div>
+
+      {form.getValues('workoutDays').length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          <Label className="w-full">Copy to Day</Label>
+          {form.getValues('workoutDays').map(
+            (targetDay, targetIndex) =>
+              dayIndex !== targetIndex && (
+                <Button
+                  className="h-8 text-xs"
+                  key={targetDay.day}
+                  onClick={() => copyExercisesToWorkoutDay(dayIndex, targetIndex)}
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                >
+                  {dayNames[targetDay.day]}: {targetDay.workoutName}
+                </Button>
+              )
+          )}
+        </div>
+      )}
+
+      {exercises.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="text-foreground font-medium text-sm">Added Exercises</h4>
+          <div className="space-y-2">
+            {exercises.map((exercise, exerciseIndex) => (
+              <div
+                className="flex flex-col gap-3 rounded-lg border bg-background p-3 shadow-sm sm:flex-row sm:items-center"
+                key={exercise.id}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-foreground font-medium text-sm">
+                    {exercise.name}
+                  </p>
+                  <p className="truncate text-muted-foreground text-xs">
+                    {exercise.equipments.join(', ')} • {exercise.targetMuscles.join(', ')}
+                  </p>
+                  <div className="mt-2 grid grid-cols-3 gap-2 sm:items-center">
+                    <div className="flex items-center gap-1">
+                      <Input
+                        className="h-10 w-20 text-base bg-card border-foreground/20 text-foreground tracking-wide text-center sm:w-24"
+                        min="1"
+                        inputMode="numeric"
+                        type="number"
+                        {...form.register(`workoutDays.${dayIndex}.exercises.${exerciseIndex}.sets`, { valueAsNumber: true })}
+                      />
+                      <span className="text-foreground/80 text-xs">sets</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        className="h-10 w-24 text-base bg-card border-foreground/20 text-foreground tracking-wide"
+                        min="1"
+                        inputMode="numeric"
+                        type="number"
+                        {...form.register(`workoutDays.${dayIndex}.exercises.${exerciseIndex}.targetReps.0`, { valueAsNumber: true })}
+                      />
+                      <span className="text-foreground/80 text-xs">reps</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        className="h-10 w-24 text-base bg-card border-foreground/20 text-foreground tracking-wide text-center sm:w-28"
+                        min="0"
+                        inputMode="decimal"
+                        type="number"
+                        {...form.register(`workoutDays.${dayIndex}.exercises.${exerciseIndex}.startingWeight`, { valueAsNumber: true })}
+                      />
+                      <span className="text-foreground/80 text-xs">lb</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-shrink-0 items-center gap-2 self-start sm:self-auto">
+                  <Button
+                    className="h-8 w-8 text-foreground"
+                    onClick={() => removeExercise(exerciseIndex)}
+                    size="icon"
+                    variant="ghost"
+                    type="button"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
