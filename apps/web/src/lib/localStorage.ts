@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Types for our application
 export interface Exercise {
   exerciseId: string;

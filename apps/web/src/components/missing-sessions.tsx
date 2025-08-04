@@ -83,7 +83,7 @@ export function MissingSessions() {
       <CardHeader>
         <CardTitle>Missing Workout Sessions</CardTitle>
         <CardDescription>
-          Here are your scheduled workouts that you haven't logged since you
+          Here are your scheduled workouts that you haven&apos;t logged since you
           started your plan.
         </CardDescription>
       </CardHeader>

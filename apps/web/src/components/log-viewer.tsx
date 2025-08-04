@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -140,7 +141,7 @@ export function LogViewer({ limit }: LogViewerProps) {
             <div>
               <CardTitle>No Workout History</CardTitle>
               <CardDescription>
-                You haven't completed any workout sessions yet.
+                You haven&apos;t completed any workout sessions yet.
               </CardDescription>
             </div>
           </div>

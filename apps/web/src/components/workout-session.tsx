@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { ChevronLeft, ChevronRight, Star, Plus, Trash2, Copy, Info } from 'lucide-react';
@@ -350,7 +351,7 @@ export function WorkoutSession() {
             <CardHeader>
               <CardTitle>Next Workout: {nextWorkout.name}</CardTitle>
               <CardDescription>
-                Here's a sneak peek of your next session.
+                Here&apos;s a sneak peek of your next session.
               </CardDescription>
             </CardHeader>
             <CardContent>

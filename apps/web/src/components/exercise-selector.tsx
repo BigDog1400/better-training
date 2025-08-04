@@ -51,7 +51,7 @@ export function ExerciseSelector({ onSelect, keepOpen = true, selectedIds = [] }
       offset,
       bodypart: activeBodypart || undefined,
       equipment: activeEquipment || undefined,
-    } as any);
+    });
 
     return result.exercises as Exercise[];
   };

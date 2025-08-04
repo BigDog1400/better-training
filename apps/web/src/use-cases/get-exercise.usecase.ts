@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { FileLoader } from '@/data/load';
-import type { GetExercisesArgs, GetExercisesReturnArgs, Exercise } from '@/types/exercise.types';
+import type { GetExercisesArgs, GetExercisesReturnArgs } from '@/types/exercise.types';
 import Fuse from 'fuse.js';
 
 export class GetExercisesUseCase {

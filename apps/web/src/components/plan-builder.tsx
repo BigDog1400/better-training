@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Trash2, Copy, ArrowDownAZ } from 'lucide-react';
+import { Plus, Trash2, Copy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
@@ -214,7 +215,7 @@ export function PlanBuilder() {
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
       <h2 className="font-bold text-2xl">
         <FormattedMessage
-          id="planBuilder.title"
+          id="m6Xoby"
           defaultMessage="Create Custom Plan"
         />
       </h2>
